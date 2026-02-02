@@ -121,7 +121,7 @@ export function TokenDocumentation({
     // Ensure active tab is valid
     const validActiveTab = availableTabs.some(t => t.id === activeTab)
         ? activeTab
-        : availableTabs[0]?.id || 'colors';
+        : (availableTabs[0] && availableTabs[0].id) || 'colors';
 
     const toggleDarkMode = () => {
         setIsDarkMode(!isDarkMode);
@@ -234,12 +234,12 @@ export function TokenDocumentation({
                     }
                     
                     // Handle any other dynamic token sets
-                    const tokenSet = tokenSets[validActiveTab];
+                    const tokenSet = (tokenSets as any)[validActiveTab];
                     if (!tokenSet) return null;
                     
                     return (
                         <div className="ftd-dynamic-tokens">
-                            <h3>{availableTabs.find(t => t.id === validActiveTab)?.label || 'Tokens'}</h3>
+                            <h3>{(availableTabs.find(t => t.id === validActiveTab) || { label: 'Tokens' }).label}</h3>
                             {Object.entries(tokenSet).map(([componentName, componentData]) => {
                                 const buttonData = componentData as any;
                                 
@@ -281,7 +281,7 @@ export function TokenDocumentation({
                                         if (!propData) return null;
                                         const values = Object.values(propData);
                                         const middleIndex = Math.floor(values.length / 2);
-                                        return (values[middleIndex] as any)?.value;
+                                        return (values[middleIndex] as any) && (values[middleIndex] as any).value;
                                     };
                                     
                                     // Use actual properties from tokens - no assumptions
