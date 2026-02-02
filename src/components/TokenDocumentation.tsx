@@ -233,7 +233,7 @@ export function TokenDocumentation({
                         );
                     }
                     
-                    // Handle any other dynamic token sets
+                    // Handle individual component token sets
                     const tokenSet = (tokenSets as any)[validActiveTab];
                     if (!tokenSet) return null;
                     
