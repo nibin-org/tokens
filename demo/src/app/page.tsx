@@ -2,7 +2,7 @@
 
 import { TokenDocumentation } from '@nibin-org/tokens'
 import '@nibin-org/tokens/styles.css'
-import tokens from '../../tokens.json' // Real tokens from Figma Token Studio
+import tokens from '../../../tokens.json' // Real tokens from Figma Token Studio
 
 export default function Home() {
   return (
