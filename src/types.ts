@@ -64,6 +64,7 @@ export interface FigmaTokens {
     text?: NestedTokens;
   };
   'Spacing/Mode 1'?: NestedTokens;
+  'Space/Mode 1'?: NestedTokens; // Alternative naming from Figma
   'Size/Mode 1'?: NestedTokens;
   'Radius/Mode 1'?: NestedTokens;
   'Components/Mode 1'?: NestedTokens;

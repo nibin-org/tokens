@@ -303,29 +303,96 @@ The styles use CSS custom properties, making customization simple:
 }
 ```
 
-## 📊 Workflow Integration
+## 📊 Figma-to-Code Workflow
 
-### Figma-to-Code Pipeline
+### Complete Design System Pipeline
 
 ```
 ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
 │                 │      │                  │      │                 │
-│   Figma +       │─────▶│  tokens.json    │─────▶│   CSS + Docs   │
-│   Token Studio  │      │                  │      │                 │
+│   Figma +       │─────▶│  tokens.json    │─────▶│   Live Docs +   │
+│   Token Studio  │      │  (GitHub Sync)   │      │   CSS Variables │
 │                 │      │                  │      │                 │
 └─────────────────┘      └──────────────────┘      └─────────────────┘
         │                         │                        │
-   Design tokens            Export/sync              Build script
-   in Figma                 via plugin               generates CSS
-                                                     + visual docs
+   Design tokens            Auto-sync via             @nibin-org/tokens
+   managed in Figma         Token Studio              generates beautiful
+                            plugin                     interactive docs
 ```
 
-### Recommended Setup
+### Step-by-Step Setup
 
-1. **Design Phase**: Use [Figma Tokens Studio](https://tokens.studio/) to manage tokens in Figma
-2. **Sync Phase**: Export `tokens.json` to your repo (manual or automated via GitHub sync)
-3. **Build Phase**: Run your token build script to generate CSS variables
-4. **Document Phase**: Use `@nibin-org/tokens` to display beautiful, interactive documentation
+#### 1. **Design Phase**: Create tokens in Figma
+- Install [Figma Tokens Studio](https://tokens.studio/) plugin
+- Create your design tokens (colors, spacing, typography, etc.)
+- Organize tokens with semantic naming (base → semantic)
+
+#### 2. **Sync Phase**: Export to your repository
+- In Token Studio, go to Settings → Sync
+- Choose "GitHub" and connect your repository
+- Set file path to `tokens.json`
+- Enable auto-sync for seamless updates
+
+#### 3. **Documentation Phase**: Generate beautiful docs
+```tsx
+import { TokenDocumentation } from '@nibin-org/tokens';
+import '@nibin-org/tokens/styles.css';
+import tokens from './tokens.json'; // Auto-synced from Figma
+
+export default function TokensPage() {
+  return <TokenDocumentation tokens={tokens} />;
+}
+```
+
+#### 4. **Build Phase**: Generate CSS variables (Optional)
+```js
+// build-tokens.js
+const tokens = require('./tokens.json');
+const fs = require('fs');
+
+// Generate CSS custom properties
+const css = generateCSSVariables(tokens);
+fs.writeFileSync('src/styles/tokens.css', css);
+```
+
+### Real-World Example
+
+Our [live demo](https://nibin-org.github.io/tokens/) uses tokens exported directly from Figma Token Studio, showcasing:
+
+- **Base color palettes** with 50-900 shade scales
+- **Semantic tokens** (fill, stroke, text) with token references
+- **Spacing system** following 4px grid
+- **Typography scales** with consistent ratios
+- **Border radius** system from subtle to full rounds
+
+### Token Structure (Figma Token Studio Format)
+
+```json
+{
+  "Colors/Value": {
+    "base": {
+      "blue": {
+        "500": { "value": "#3b82f6", "type": "color" }
+      }
+    },
+    "fill": {
+      "primary": { "value": "{base.blue.500}", "type": "color" }
+    }
+  },
+  "Spacing/Mode 1": {
+    "space-4": { "value": "16px", "type": "dimension" }
+  }
+}
+```
+
+### Benefits of This Workflow
+
+✅ **Single Source of Truth**: Figma remains the design authority  
+✅ **Automatic Sync**: Changes in Figma instantly update documentation  
+✅ **Developer-Friendly**: JSON format works with any build system  
+✅ **Visual Documentation**: Interactive docs that designers and developers love  
+✅ **Token References**: Semantic tokens automatically resolve base values  
+✅ **Version Control**: All changes tracked in Git with full history
 
 ### Example Build Script
 

@@ -38,7 +38,7 @@ export function TokenDocumentation({
 
     // Extract token sets
     const colorsValue = tokens['Colors/Value'];
-    const spacingTokens = tokens['Spacing/Mode 1'] || {};
+    const spacingTokens = tokens['Spacing/Mode 1'] || tokens['Space/Mode 1'] || {};
     const sizeTokens = tokens['Size/Mode 1'] || {};
     const radiusTokens = tokens['Radius/Mode 1'] || {};
 
