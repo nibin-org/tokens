@@ -173,7 +173,7 @@ export function TokenDocumentation({
             )}
 
             {/* Tabs */}
-            {availableTabs.length > 1 && Object.keys(otherTokenSets).length === 0 && (
+            {availableTabs.length > 1 && (
                 <nav className="ftd-tabs" role="tablist">
                     {availableTabs.map((tab) => (
                         <button
@@ -233,18 +233,12 @@ export function TokenDocumentation({
                         );
                     }
                     
-                    // Unified view for all component tokens
-                    const allComponentTokens = Object.entries(otherTokenSets).reduce((acc, [setKey, setData]) => {
-                        Object.entries(setData as any).forEach(([componentName, componentData]) => {
-                            acc[`${setKey}/${componentName}`] = componentData;
-                        });
-                        return acc;
-                    }, {} as Record<string, any>);
-                    
-                    if (Object.keys(allComponentTokens).length === 0) return null;
+                    // Handle any other dynamic token sets
+                    const tokenSet = (tokenSets as any)[validActiveTab];
+                    if (!tokenSet) return null;
                     
                     return (
-                        <div className="ftd-unified-tokens">
+                        <div className="ftd-component-tokens">
                             <h2 style={{
                                 textAlign: 'center',
                                 margin: '0 0 48px 0',
@@ -252,11 +246,10 @@ export function TokenDocumentation({
                                 fontSize: '32px',
                                 fontWeight: '800'
                             }}>
-                                Design System Components
+                                {(availableTabs.find(t => t.id === validActiveTab) || { label: 'Components' }).label}
                             </h2>
                             
-                            {Object.entries(allComponentTokens).map(([fullName, componentData]) => {
-                                const [setName, componentName] = fullName.split('/');
+                            {Object.entries(tokenSet).map(([componentName, componentData]) => {
                                 const buttonData = componentData as any;
                                 
                                 // Dynamically detect structure patterns
@@ -277,7 +270,7 @@ export function TokenDocumentation({
                                 if (potentialVariants.length === 0) return null;
                                 
                                 return (
-                                    <div key={fullName} style={{
+                                    <div key={componentName} style={{
                                         marginBottom: '80px',
                                         padding: '40px',
                                         backgroundColor: 'var(--ftd-bg-primary)',
