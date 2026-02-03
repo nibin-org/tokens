@@ -19,6 +19,7 @@ export interface ParsedColorToken {
   cssVariable: string;
   shade?: string;
   family?: string;
+  resolvedValue?: string; // Resolved hex value for alias tokens
 }
 
 export interface ParsedSpacingToken {

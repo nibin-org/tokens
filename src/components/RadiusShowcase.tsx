@@ -13,14 +13,18 @@ export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
 
     const radiusTokens = parseRadiusTokens(tokens);
 
+    const showToast = useCallback((value: string) => {
+        setCopiedValue(value);
+        setTimeout(() => setCopiedValue(null), 2000);
+    }, []);
+
     const handleCopy = useCallback(async (token: ParsedRadiusToken) => {
         const success = await copyToClipboard(token.value);
         if (success) {
-            setCopiedValue(token.value);
-            setTimeout(() => setCopiedValue(null), 2000);
+            showToast(token.value);
         }
         onTokenClick?.(token);
-    }, [onTokenClick]);
+    }, [onTokenClick, showToast]);
 
     if (radiusTokens.length === 0) {
         return (
@@ -42,26 +46,46 @@ export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
 
             <div className="ftd-radius-grid">
                 {radiusTokens.map((token) => (
-                    <div
-                        key={token.name}
-                        className="ftd-radius-item"
-                        onClick={() => handleCopy(token)}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <div
-                            className="ftd-radius-preview"
-                            style={{ borderRadius: token.value }}
-                        />
+                    <div key={token.name} className="ftd-radius-item">
+                        <div className="ftd-radius-preview-container">
+                            <div
+                                className="ftd-radius-preview"
+                                style={{ borderRadius: token.value }}
+                            />
+                        </div>
                         <p className="ftd-radius-label">{token.name}</p>
-                        <p className="ftd-radius-value">{token.value}</p>
+                        <div className="ftd-token-values-row">
+                            <span
+                                className="ftd-token-css-var"
+                                onClick={() => copyToClipboard(token.cssVariable).then(() => showToast(token.cssVariable))}
+                                title={`Copy CSS: ${token.cssVariable}`}
+                            >
+                                {token.cssVariable}
+                            </span>
+                            <span
+                                className="ftd-token-hex"
+                                onClick={() => handleCopy(token)}
+                                title={`Copy Value: ${token.value}`}
+                            >
+                                {token.value}
+                            </span>
+                        </div>
                     </div>
                 ))}
             </div>
 
-            {/* Copy Toast */}
+            {/* Premium Copy Toast */}
             {copiedValue && (
                 <div className="ftd-copied-toast">
-                    ✓ Copied: {copiedValue}
+                    <div className="ftd-toast-icon">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div className="ftd-toast-content">
+                        <span className="ftd-toast-label">Copied</span>
+                        <span className="ftd-toast-value">{copiedValue}</span>
+                    </div>
                 </div>
             )}
         </div>

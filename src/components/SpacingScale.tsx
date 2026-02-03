@@ -14,14 +14,18 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
     const spacingTokens = parseSpacingTokens(tokens);
     const maxValue = Math.max(...spacingTokens.map(t => t.numericValue), 1);
 
+    const showToast = useCallback((value: string) => {
+        setCopiedValue(value);
+        setTimeout(() => setCopiedValue(null), 2000);
+    }, []);
+
     const handleCopy = useCallback(async (token: ParsedSpacingToken) => {
         const success = await copyToClipboard(token.value);
         if (success) {
-            setCopiedValue(token.value);
-            setTimeout(() => setCopiedValue(null), 2000);
+            showToast(token.value);
         }
         onTokenClick?.(token);
-    }, [onTokenClick]);
+    }, [onTokenClick, showToast]);
 
     if (spacingTokens.length === 0) {
         return (
@@ -46,29 +50,48 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
                     const widthPercent = (token.numericValue / maxValue) * 100;
 
                     return (
-                        <div
-                            key={token.name}
-                            className="ftd-spacing-item"
-                            onClick={() => handleCopy(token)}
-                            style={{ cursor: 'pointer' }}
-                        >
+                        <div key={token.name} className="ftd-spacing-item">
                             <span className="ftd-spacing-label">{token.name}</span>
                             <div className="ftd-spacing-bar-container">
                                 <div
                                     className="ftd-spacing-bar"
-                                    style={{ width: `${Math.max(widthPercent, 5)}%` }}
+                                    style={{ width: `${Math.max(widthPercent, 2)}%` }}
                                 />
                             </div>
-                            <span className="ftd-spacing-value">{token.value}</span>
+                            <div className="ftd-token-values-row" style={{ flexDirection: 'row', gap: '8px', minWidth: 'fit-content' }}>
+                                <span
+                                    className="ftd-token-css-var"
+                                    onClick={() => copyToClipboard(token.cssVariable).then(() => showToast(token.cssVariable))}
+                                    title={`Copy CSS: ${token.cssVariable}`}
+                                >
+                                    {token.cssVariable}
+                                </span>
+                                <span
+                                    className="ftd-token-hex"
+                                    onClick={() => handleCopy(token)}
+                                    title={`Copy Value: ${token.value}`}
+                                    style={{ minWidth: '60px', textAlign: 'center' }}
+                                >
+                                    {token.value}
+                                </span>
+                            </div>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Copy Toast */}
+            {/* Premium Copy Toast */}
             {copiedValue && (
                 <div className="ftd-copied-toast">
-                    ✓ Copied: {copiedValue}
+                    <div className="ftd-toast-icon">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div className="ftd-toast-content">
+                        <span className="ftd-toast-label">Copied</span>
+                        <span className="ftd-toast-value">{copiedValue}</span>
+                    </div>
                 </div>
             )}
         </div>
