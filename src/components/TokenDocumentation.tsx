@@ -53,20 +53,34 @@ export function TokenDocumentation({
             const allTokens = findAllTokens(set);
             if (allTokens.length === 0) return 'other';
 
-            // Check if it's a semantic color set (Colors/Value pattern)
+            const nameLower = name.toLowerCase();
+
+            // 1. Explicit naming cues take priority for Components
+            if (nameLower.includes('button') || nameLower.includes('card') || nameLower.includes('input') || nameLower.includes('comp-')) {
+                return 'components';
+            }
+
+            // 2. Check if it's a semantic color set (Colors/Value pattern)
             if (set.base || set.fill || set.stroke || set.text) return 'colors';
 
             const types = new Set(allTokens.map(t => t.token.type));
-            const nameLower = name.toLowerCase();
 
+            // 3. Structural cues
+            // If it has deeply nested structures that aren't tokens, and it's not a known dimension/color set, it's likely components
+            const hasNestedNonTokens = Object.values(set).some(v => v && typeof v === 'object' && !isSingleToken(v));
+
+            // If it contains multiple sub-objects at the root that aren't tokens, it's likely a component library
+            if (hasNestedNonTokens) {
+                // If the name mentions colors/values, it might be a weirdly nested color set
+                if (nameLower.includes('color') || nameLower.includes('palette')) return 'colors';
+                return 'components';
+            }
+
+            // 4. Default to token type detection
             if (types.has('color')) return 'colors';
             if (types.has('spacing') || nameLower.includes('space') || nameLower.includes('spacing')) return 'spacing';
             if (types.has('sizing') || ['size', 'width', 'height'].some(n => nameLower.includes(n))) return 'sizes';
             if (types.has('borderRadius') || nameLower.includes('radius') || nameLower.includes('border')) return 'radius';
-
-            // If it has deeply nested structures that aren't tokens, it's likely components
-            const hasNestedNonTokens = Object.values(set).some(v => v && typeof v === 'object' && !isSingleToken(v));
-            if (hasNestedNonTokens) return 'components';
 
             return 'other';
         };
