@@ -29,12 +29,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: demo/package-lock.json
       
-      - name: Install dependencies
+      - name: Install root dependencies
+        run: npm ci
+      
+      - name: Build root package
+        run: npm run build
+
+      - name: Install demo dependencies
         run: |
           cd demo
-          npm ci
+          npm install
       
-      - name: Build
+      - name: Build demo
         run: |
           cd demo
           npm run build
