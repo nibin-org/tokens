@@ -6,128 +6,138 @@
 ![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
-**Interactive visual documentation for design tokens**
+**The most "loveable" way to document and use your design tokens.**
 
 [Demo](https://nibin-org.github.io/tokens/) · [Issues](https://github.com/nibin-org/tokens/issues)
 
 </div>
 
-## Features
+---
 
-- 🔍 **Global Search** - `Cmd+K` to find any token instantly
-- 🎨 **Three-Tab Layout** - Foundation, Semantic, and Components
-- � **One-Click Copy** - Copy CSS variables with a click
-- ⌨️ **Keyboard Navigation** - Full keyboard support
-- 🌙 **Dark Mode** - Built-in dark theme
-- 📦 **117 KB** - Zero external dependencies
-- 🔷 **TypeScript** - Full type definitions
+## 💎 Best in Segment Features
 
-## Installation
+- 🔍 **Global Search** - `Cmd+K` to find any token across Foundation, Semantic, or Components instantly.
+- 📤 **Code Export** - Generate and download **CSS**, **SCSS**, **JS**, or **Tailwind** configs directly from the UI.
+- 🎨 **Smart Visualization** - Interactive color palettes, spacing scales, and component previews that feel premium.
+- 🧠 **Alias Resolution** - Intelligent engine that resolves Figma Token Studio aliases into production-ready code.
+- 🌙 **Adaptive Themes** - Seamless dark and light mode support out of the box.
+- 📦 **Ultra Lightweight** - Under 136KB with zero external dependencies.
+
+---
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
 npm install @nibin-org/tokens
 ```
 
-## Usage
+### Usage
 
 ```tsx
 import { TokenDocumentation } from '@nibin-org/tokens';
 import '@nibin-org/tokens/styles.css';
 import tokens from './tokens.json';
 
-<TokenDocumentation tokens={tokens} />
+function App() {
+  return <TokenDocumentation tokens={tokens} />;
+}
 ```
 
-### Next.js
+---
 
-```js
-// next.config.js
-const nextConfig = {
-  transpilePackages: ['@nibin-org/tokens'],
-};
-```
+## 🏗️ Mastering Tokens
 
-## Search
+`@nibin-org/tokens` is designed to work seamlessly with [Figma Tokens Studio](https://tokens.studio/) (W3C Design Token format). 
 
-- **Open**: `Cmd+K` (Mac) or `Ctrl+K` (Windows)
-- **Navigate**: Arrow keys
-- **Select**: Enter
-- **Close**: Esc
+### 1. The Three-Layer Architecture
 
-Search by token name, value, or CSS variable.
+For the best experience, structure your tokens into these three categories. This allows our documentation engine to provide specialized visualizations (like color families and component tables).
 
-## API
+| Layer | Purpose | Formatting Pattern |
+|-------|---------|------------------|
+| **Foundation** | Base values (colors, spacing, sizes) | `Foundation/Value` > `base` |
+| **Semantic** | Intent-based tokens (fill-primary, text-danger) | `Semantic/Value` |
+| **Components**| Component-specific tokens (button, input) | `Components/Mode 1` (or any name starting with `Components/`) |
 
-```tsx
-<TokenDocumentation
-  tokens={tokens}                    // Required
-  title="Design Tokens"              // Optional
-  subtitle="v1.9.0"                  // Optional
-  onTokenClick={(token) => {...}}    // Optional
-/>
-```
+### 2. Supported Token Types
 
-### Props
+We provide specialized visualizations for:
+- `color`: Interactive cards with Hex, RGB, and Contrast info.
+- `dimension` / `spacing` / `sizing`: Visual scale bars and pixel values.
+- `borderRadius`: Interactive corner previews.
+- `typography` (Coming Soon): Font family and style previews.
 
-| Prop | Type | Required | Default |
-|------|------|----------|---------|
-| `tokens` | `FigmaTokens` | Yes | - |
-| `title` | `string` | No | `"Design Tokens"` |
-| `subtitle` | `string` | No | `"View and copy design tokens"` |
-| `onTokenClick` | `(token) => void` | No | - |
+### 3. Smart Aliasing
 
-## Token Structure
-
-Works with [Figma Tokens Studio](https://tokens.studio/) exports:
+We support the `{category.item.value}` syntax for token aliasing. Our **Export Engine** automatically resolves these for you:
 
 ```json
+// tokens.json
 {
   "Foundation/Value": {
     "base": {
-      "blue": {
-        "50": { "value": "#3b82f6", "type": "color" }
-      },
-      "space": {
-        "md": { "value": "16px", "type": "dimension" }
-      }
+      "blue": { "50": { "value": "#3b82f6", "type": "color" } }
     }
   },
   "Semantic/Value": {
     "fill": {
-      "primary": { "value": "{base.blue.50}", "type": "color" }
+      "primary": { "value": "{base.blue.50}", "type": "color" } 
     }
   }
 }
 ```
 
-## Components
+---
 
-Individual components for custom layouts:
+## 🔎 Advanced Documentation
 
-```tsx
-import { 
-  FoundationTab,
-  SemanticTab,
-  ComponentsTab,
-  SpacingScale,
-  SizeScale,
-  RadiusShowcase
-} from '@nibin-org/tokens';
-```
+### Global Search
+Access the global search anywhere with **`Cmd+K`** (Mac) or **`Ctrl+K`** (Windows).
+- Fuzzy matching finds tokens by name, hex value, or CSS variable.
+- Keyboard navigation (Arrows + Enter) for a high-speed workflow.
 
-## Development
+### Code Export
+Generate production-ready code in seconds:
+- **CSS**: Standard CSS variables with proper headers.
+- **SCSS**: Linked variables and a comprehensive `$tokens` map.
+- **Tailwind**: A ready-to-paste `theme.extend` object.
+- **JavaScript**: Clean object structures for runtime use.
+
+---
+
+## 🛠️ API Reference
+
+### `<TokenDocumentation />`
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `tokens` | `FigmaTokens` | **Required** | The JSON object exported from Tokens Studio. |
+| `title` | `string` | `"Design Tokens"` | The main title in the header. |
+| `subtitle` | `string` | `"View and copy design tokens"` | The subtitle/version text. |
+| `onTokenClick` | `(token) => void` | `null` | Callback for custom token interaction logic. |
+| `darkMode` | `boolean` | `false` | Initial theme state. |
+
+---
+
+## 💻 Development
 
 ```bash
+# Clone the repository
 git clone https://github.com/nibin-org/tokens.git
-cd tokens
+
+# Install and build the core package
 npm install
 npm run build
 
+# Run the local demo playground
 cd demo
 npm install
 npm run dev
 ```
 
-## License
+---
 
+## 📄 License
 MIT © [nibin-org](https://github.com/nibin-org)
