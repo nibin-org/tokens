@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-02-05
+
+### Fixed
+- **Package size optimization**: Reduced from 419 KB to 95.3 KB (-77%)
+  - Disabled source maps in production build
+  - Enabled minification for all bundles
+  - Added CSS minification using lightningcss
+- **Missing CSS variable**: Added `--ftd-primary-rgb` for rgba() usage in both light and dark themes
+- **Accessibility improvements**: Added `role="status"` and `aria-live="polite"` to toast notifications
+- **ESLint script removed**: Removed lint script from package.json (dependency not present)
+
+### Changed
+- **Build configuration**: Updated tsup.config.ts with minification and CSS optimization
+- **Font loading**: Optimized Google Fonts import (Inter + JetBrains Mono)
+
 ## [1.8.0] - 2026-02-05
 
 ### Added
