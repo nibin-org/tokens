@@ -23,6 +23,9 @@ export { ColorGrid } from './components/ColorGrid';
 export { SpacingScale } from './components/SpacingScale';
 export { RadiusShowcase } from './components/RadiusShowcase';
 export { SizeScale } from './components/SizeScale';
+export { FoundationTab } from './components/FoundationTab';
+export { SemanticTab } from './components/SemanticTab';
+export { ComponentsTab } from './components/ComponentsTab';
 
 // Types
 export type {
@@ -50,4 +53,8 @@ export {
   parseSizeTokens,
   getContrastColor,
   copyToClipboard,
+  extractTokenGroups,
+  detectTokenType,
+  createTokenMap,
+  resolveTokenValue,
 } from './utils';

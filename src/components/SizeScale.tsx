@@ -48,14 +48,12 @@ export function SizeScale({ tokens, onTokenClick }: SizeScaleProps) {
             {/* Vertical bar chart (Visual Preview) */}
             <div className="ftd-size-grid">
                 {sizeTokens.map((token) => {
-                    const heightPercent = (token.numericValue / maxValue) * 180;
-
                     return (
                         <div key={token.name} className="ftd-size-item">
                             <div
                                 className="ftd-size-bar"
                                 style={{
-                                    height: `${Math.max(heightPercent, 8)}px`,
+                                    height: token.value,
                                     width: '32px',
                                 }}
                                 onClick={() => handleCopy(token)}

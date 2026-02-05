@@ -49,23 +49,28 @@
   --ftd-shadow-card: 0 1px 3px rgba(0,0,0,0.3);
 }
 
+body {
+  margin: 0;
+}
+
 /* --- Layout --- */
 .ftd-container {
   font-family: var(--ftd-font-sans);
   background: var(--ftd-bg-page);
   color: var(--ftd-text-main);
-  padding: 0 40px 200px 40px; /* Added significant bottom padding */
+  padding: 0 40px 0px 40px; /* Added significant bottom padding */
   min-height: 100vh;
 }
 
 /* --- Header --- */
 .ftd-navbar-sticky {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
   z-index: 1000;
   background: var(--ftd-bg-page);
-  padding-top: 40px;
-  padding-bottom: 16px; /* Reduced from margin-bottom: 32px */
+  padding: 0;
   border-bottom: 1px solid var(--ftd-border);
 }
 
@@ -73,7 +78,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+  padding: 16px 40px;
 }
 
 .ftd-title {
@@ -111,7 +117,7 @@
   gap: 8px;
   margin-bottom: 0; /* Margin handled by navbar-sticky */
   overflow-x: auto;
-  padding-bottom: 16px;
+  padding: 0 40px 16px 40px;
 }
 
 .ftd-tab {
@@ -315,7 +321,7 @@
 }
 
 .ftd-content {
-  padding-top: 32px; /* Consistent initial gap */
+  padding-top: 180px; /* Consistent initial gap */
 }
 
 /* --- Color Sidebar Layout --- */
@@ -329,12 +335,13 @@
   width: 220px;
   flex-shrink: 0;
   position: sticky;
-  top: 200px; /* Adjusted for sticky header + gap */
+  top: 180px; /* Adjusted for sticky header + gap */
   height: fit-content;
 }
 
 .ftd-color-section {
-  scroll-margin-top: 200px; /* Ensures gap after navigation */
+  scroll-margin-top: 180px; /* Ensures gap after navigation */
+  margin-bottom: 40px;
 }
 
 .ftd-color-nav {
@@ -398,6 +405,7 @@
   display: flex;
   flex-direction: column;
   gap: 48px;
+  padding-top: 16px;
 }
 
 @media (max-width: 1024px) {
@@ -582,6 +590,7 @@
   justify-content: space-between;
   gap: 8px;
   transition: background-color 0.2s;
+  cursor: pointer;
 }
 
 .ftd-color-shade:hover {
@@ -606,15 +615,10 @@
   font-size: 0.75rem;
   padding: 4px 8px;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
+  cursor: default;
   background: rgba(0, 0, 0, 0.1);
-}
-
-.ftd-shade-css-var:hover,
-.ftd-shade-hex:hover {
-  background: rgba(0, 0, 0, 0.2);
-  transform: scale(1.02);
+  opacity: 0.7;
+  cursor: pointer;
 }
 
 .ftd-color-shade-value {
@@ -721,17 +725,12 @@
   font-size: 0.65rem;
   padding: 4px 8px;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
+  cursor: default;
   background: var(--ftd-bg-hover);
   color: var(--ftd-text-sub);
   word-break: break-all;
-}
-
-.ftd-token-css-var:hover,
-.ftd-token-hex:hover {
-  background: var(--ftd-primary-fade);
-  color: var(--ftd-primary);
+  opacity: 0.8;
+  cursor: pointer;
 }
 
 .ftd-copy-icon {
@@ -801,6 +800,14 @@
   text-align: right;
 }
 
+.ftd-semantic-group {
+  margin-bottom: 32px;
+}
+
+.ftd-semantic-group-name {
+  margin: 8px 0;
+}
+
 /* ========================================
    Sizes Scale Styles
    ======================================== */
@@ -812,7 +819,7 @@
   background: var(--ftd-bg-subtle);
   border-radius: 12px;
   overflow-x: auto;
-  min-height: 240px;
+  min-height: 100px;
   margin-bottom: 32px;
 }
 
@@ -936,10 +943,150 @@
   margin: 0;
 }
 
+/* ========================================
+   Foundation Tab Styles
+   ======================================== */
+.ftd-foundation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.ftd-foundation-section {
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: var(--ftd-radius);
+  padding: 24px;
+  box-shadow: var(--ftd-shadow-card);
+}
+
+/* Typography Display */
+.ftd-typography-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.ftd-typography-card {
+  background: var(--ftd-bg-subtle);
+  border: 1px solid var(--ftd-border);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.ftd-typography-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ftd-shadow-hover);
+  border-color: var(--ftd-primary);
+}
+
+.ftd-typography-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ftd-text-sub);
+  text-transform: capitalize;
+}
+
+.ftd-typography-value {
+  font-family: var(--ftd-font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ftd-text-main);
+}
+
+/* ========================================
+   Semantic Tab Styles
+   ======================================== */
+.ftd-semantic-container {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.ftd-semantic-section {
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: var(--ftd-radius);
+  padding: 24px;
+  box-shadow: var(--ftd-shadow-card);
+}
+
+.ftd-semantic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .ftd-container { padding: 20px; }
   .ftd-variants-grid { grid-template-columns: 1fr; }
   .ftd-color-scale { flex-wrap: wrap; }
   .ftd-color-shade { min-width: 80px; }
+  .ftd-variant-card { width: 100%; }
+  .ftd-color-family { width: 100%; }
+  .ftd-typography-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .ftd-semantic-grid { grid-template-columns: 1fr; }
+}
+/* --- Component Dimensions Display --- */
+.ftd-dimensions-display {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.ftd-dimension-group {
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ftd-dimension-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  color: var(--ftd-text-main);
+  text-transform: capitalize;
+}
+
+.ftd-dimension-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.ftd-dimension-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--ftd-bg-subtle);
+  border: 1px solid var(--ftd-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ftd-dimension-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ftd-shadow-hover);
+  border-color: var(--ftd-primary);
+}
+
+.ftd-dimension-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ftd-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ftd-dimension-value {
+  font-family: var(--ftd-font-mono);
+  font-size: 0.85rem;
+  color: var(--ftd-primary);
+  font-weight: 600;
 }

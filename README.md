@@ -9,7 +9,7 @@
 
 ### 🎨 Beautiful, Interactive Visual Documentation for Design Tokens
 
-**The missing UI layer that Style Dictionary doesn't provide**
+**Transform your Figma tokens into living, interactive documentation**
 
 [View Demo](https://nibin-org.github.io/tokens/) · [Report Bug](https://github.com/nibin-org/tokens/issues) · [Request Feature](https://github.com/nibin-org/tokens/issues)
 
@@ -19,58 +19,49 @@
 
 ## ✨ Why @nibin-org/tokens?
 
-Transform your static design tokens into **living, interactive documentation** that designers and developers will actually love using.
+Transform your static design tokens into **living, interactive documentation** that designers and developers will actually love using. Export from Figma, import into React, and get beautiful documentation instantly.
 
 ```tsx
 import { TokenDocumentation } from '@nibin-org/tokens';
 import '@nibin-org/tokens/styles.css';
+import tokens from './tokens.json'; // Exported from Figma
 
-<TokenDocumentation tokens={yourTokens} />
+<TokenDocumentation tokens={tokens} />
 ```
 
-That's it. Beautiful documentation in one line.
+That's it. Beautiful documentation in one line. ✨
 
-## 🎯 Features
+## 🎯 What's New in v1.8.0
 
 <table>
   <tr>
     <td width="50%">
-      <h3>🎨 Rich Color Visualization</h3>
-      <p>Base palettes with shade scales + semantic tokens (fill, stroke, text) displayed with contrast ratios</p>
+      <h3>🧩 Three-Tab Architecture</h3>
+      <p>Organized navigation with <strong>Foundation</strong>, <strong>Semantic</strong>, and <strong>Components</strong> tabs for intuitive token discovery</p>
     </td>
     <td width="50%">
-      <h3>📏 Spacing & Size Scales</h3>
-      <p>Visual bar charts with proportional representation and real measurements</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <h3>⬜ Radius Showcase</h3>
-      <p>Actual rounded boxes demonstrating each radius value in action</p>
-    </td>
-    <td width="50%">
-      <h3>🌙 Dark Mode</h3>
-      <p>Built-in light/dark theme toggle with smooth transitions</p>
+      <h3>📍 Sticky Sidebar Navigation</h3>
+      <p>Each tab features a contextual sidebar - Colors, Spacing, Sizes in Foundation; Fill, Stroke, Text in Semantic</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>📋 Copy-to-Clipboard</h3>
-      <p>Click any token to copy its value instantly with visual feedback</p>
+      <h3>🎯 Smart Color Grouping</h3>
+      <p>Semantic colors automatically grouped by base color (e.g., all red variants together)</p>
     </td>
     <td width="50%">
-      <h3>🔍 Search & Filter</h3>
-      <p>Quickly find tokens with real-time search</p>
+      <h3>📋 One-Click Copy</h3>
+      <p>Click any token to copy <code>var(--token-name)</code> format - ready to paste into CSS</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>📱 Fully Responsive</h3>
-      <p>Works beautifully on any screen size, from mobile to 4K displays</p>
+      <h3>⚡ Fixed Navbar</h3>
+      <p>Persistent navigation bar with smooth scrolling and improved UX</p>
     </td>
     <td width="50%">
-      <h3>🔌 Zero Config</h3>
-      <p>Just pass your tokens.json and go - no complex setup required</p>
+      <h3>🔧 Component Dimension Display</h3>
+      <p>Component tokens show all dimensions (font-size, padding, radius) in organized groups</p>
     </td>
   </tr>
 </table>
@@ -120,62 +111,187 @@ export default nextConfig;
 
 > **💡 Tip**: If you experience issues with Next.js 16+ Turbopack during local development with linked packages, use `next dev --webpack` as a workaround.
 
-## 📖 Complete Guide
+## 📖 Figma Token Structure
 
-### Token Structure
+This library works seamlessly with tokens exported from [Figma Tokens Studio](https://tokens.studio/). Here's the production-ready structure:
 
-This library works seamlessly with tokens exported from [Figma Tokens Studio](https://tokens.studio/). Here's the expected structure:
+### Foundation Tokens
+
+Foundation tokens define your base design primitives. Structure them under `Foundation/Value.base`:
 
 ```json
 {
-  "Colors/Value": {
+  "Foundation/Value": {
     "base": {
+      "green": {
+        "5": { "value": "#fafffc", "type": "color" },
+        "10": { "value": "#ecfal4", "type": "color" },
+        "50": { "value": "#28b97b", "type": "color" },
+        "90": { "value": "#0e412b", "type": "color" }
+      },
       "blue": {
-        "50": { "value": "#e6f0ff", "type": "color" },
-        "100": { "value": "#cce1ff", "type": "color" },
-        "500": { "value": "#1369e9", "type": "color" }
+        "5": { "value": "#f0f9ff", "type": "color" },
+        "50": { "value": "#3b82f6", "type": "color" },
+        "90": { "value": "#1e3a8a", "type": "color" }
+      },
+      "space": {
+        "xs": { "value": "4px", "type": "dimension" },
+        "sm": { "value": "8px", "type": "dimension" },
+        "md": { "value": "16px", "type": "dimension" },
+        "lg": { "value": "24px", "type": "dimension" }
+      },
+      "size": {
+        "sm": { "value": "12px", "type": "dimension" },
+        "md": { "value": "16px", "type": "dimension" },
+        "lg": { "value": "24px", "type": "dimension" }
+      },
+      "radius": {
+        "sm": { "value": "4px", "type": "dimension" },
+        "md": { "value": "8px", "type": "dimension" },
+        "lg": { "value": "16px", "type": "dimension" }
+      },
+      "font-size": {
+        "sm": { "value": "12px", "type": "dimension" },
+        "md": { "value": "14px", "type": "dimension" },
+        "lg": { "value": "16px", "type": "dimension" }
+      },
+      "line-height": {
+        "sm": { "value": "1.25", "type": "dimension" },
+        "md": { "value": "1.5", "type": "dimension" },
+        "lg": { "value": "1.75", "type": "dimension" }
       }
-    },
-    "fill": {
-      "primary": { "value": "{base.blue.500}", "type": "color" }
-    },
-    "stroke": {
-      "default": { "value": "{base.gray.30}", "type": "color" }
-    },
-    "text": {
-      "default": { "value": "{base.gray.90}", "type": "color" }
     }
-  },
-  "Spacing/Mode 1": {
-    "space-xs": { "value": "4px", "type": "dimension" },
-    "space-sm": { "value": "8px", "type": "dimension" }
-  },
-  "Size/Mode 1": {
-    "size-sm": { "value": "12px", "type": "dimension" },
-    "size-lg": { "value": "16px", "type": "dimension" }
-  },
-  "Radius/Mode 1": {
-    "radius-sm": { "value": "4px", "type": "dimension" },
-    "radius-md": { "value": "6px", "type": "dimension" }
   }
 }
 ```
 
-### Full API Reference
+**CSS Variables Generated:**
+- Colors: `--base-green-5`, `--base-blue-50`
+- Spacing: `--base-space-md`
+- Others: `--base-size-lg`, `--base-radius-md`
 
-#### `<TokenDocumentation />` - Main Component
+### Semantic Tokens
 
-The all-in-one solution for displaying all your tokens.
+Semantic tokens reference foundation tokens and provide contextual meaning:
+
+```json
+{
+  "Semantic/Value": {
+    "fill": {
+      "primary": { "value": "{base.blue.50}", "type": "color" },
+      "success": { "value": "{base.green.50}", "type": "color" },
+      "error": { "value": "{base.red.50}", "type": "color" }
+    },
+    "stroke": {
+      "default": { "value": "{base.gray.30}", "type": "color" },
+      "active": { "value": "{base.blue.50}", "type": "color" }
+    },
+    "text": {
+      "primary": { "value": "{base.gray.90}", "type": "color" },
+      "secondary": { "value": "{base.gray.60}", "type": "color" },
+      "link": { "value": "{base.blue.50}", "type": "color" }
+    }
+  }
+}
+```
+
+**CSS Variables Generated:**
+- Fill: `--fill-primary`, `--fill-success`
+- Stroke: `--stroke-default`, `--stroke-active`
+- Text: `--text-primary`, `--text-link`
+
+### Component Tokens
+
+Component tokens define specific component properties:
+
+```json
+{
+  "Components/Mode 1": {
+    "button": {
+      "font-size": {
+        "sm": { "value": "{base.font-size.sm}", "type": "dimension" },
+        "md": { "value": "{base.font-size.md}", "type": "dimension" },
+        "lg": { "value": "{base.font-size.lg}", "type": "dimension" }
+      },
+      "padding": {
+        "sm": { "value": "{base.space.sm}", "type": "dimension" },
+        "md": { "value": "{base.space.md}", "type": "dimension" },
+        "lg": { "value": "{base.space.lg}", "type": "dimension" }
+      },
+      "radius": {
+        "sm": { "value": "{base.radius.sm}", "type": "dimension" },
+        "md": { "value": "{base.radius.md}", "type": "dimension" }
+      },
+      "height": {
+        "sm": { "value": "{base.size.xl}", "type": "dimension" },
+        "md": { "value": "{base.size.2xl}", "type": "dimension" },
+        "lg": { "value": "{base.size.3xl}", "type": "dimension" }
+      }
+    }
+  }
+}
+```
+
+## 🎨 Figma Setup Guide
+
+### Step 1: Install Figma Tokens Studio
+
+1. Open Figma
+2. Go to Plugins → Browse all plugins
+3. Install [Tokens Studio for Figma](https://tokens.studio/)
+
+### Step 2: Create Token Sets
+
+Create three token sets matching the structure above:
+
+1. **Foundation/Value** - Your base design primitives
+2. **Semantic/Value** - Contextual token references  
+3. **Components/Mode 1** - Component-specific tokens
+
+### Step 3: Organize Colors
+
+For color tokens, use this naming convention:
+
+```
+base
+  ├── green
+  │   ├── 5 (lightest)
+  │   ├── 10
+  │   ├── 20
+  │   ├── ...
+  │   └── 90 (darkest)
+  ├── blue
+  ├── red
+  └── gray
+```
+
+### Step 4: Set Up GitHub Sync
+
+1. In Tokens Studio, click Settings → Sync
+2. Choose "GitHub" as sync method
+3. Authenticate with your GitHub account
+4. Configure sync settings:
+   - **Repository**: Your project repo
+   - **Branch**: main (or your default branch)
+   - **File Path**: `tokens.json`
+   - **Commit message template**: `chore: update design tokens`
+
+5. Click "Save" and perform initial sync
+
+### Step 5: Enable Auto-Sync (Optional)
+
+Enable "Push to GitHub on Save" for automatic updates whenever you modify tokens in Figma.
+
+## 📋 Complete API Reference
+
+### `<TokenDocumentation />` - Main Component
 
 ```tsx
 <TokenDocumentation
   tokens={tokens}              // Required: Your tokens.json content
   title="Design Tokens"        // Optional: Page title
-  subtitle="v1.0.0"           // Optional: Subtitle text
-  defaultTab="colors"         // Optional: Initial tab
-  showSearch={true}           // Optional: Show search input
-  darkMode={false}            // Optional: Start in dark mode
-  onTokenClick={(token) => {  // Optional: Callback when token clicked
+  subtitle="v1.8.0"           // Optional: Subtitle text
+  onTokenClick={(token) => {   // Optional: Callback when token clicked
     console.log('Clicked:', token);
   }}
 />
@@ -188,26 +304,44 @@ The all-in-one solution for displaying all your tokens.
 | `tokens` | `FigmaTokens` | **required** | Your tokens.json content |
 | `title` | `string` | `"Design Tokens"` | Page title |
 | `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
-| `defaultTab` | `'colors' \| 'spacing' \| 'sizes' \| 'radius'` | `'colors'` | Initial active tab |
-| `showSearch` | `boolean` | `true` | Show/hide search input |
-| `darkMode` | `boolean` | `false` | Start in dark mode |
 | `onTokenClick` | `(token) => void` | `undefined` | Callback when token is clicked |
 
 ### Individual Components
 
 For custom layouts, use components individually:
 
-#### ColorGrid
+#### FoundationTab
 
 ```tsx
-import { ColorGrid } from '@nibin-org/tokens';
+import { FoundationTab } from '@nibin-org/tokens';
 
-<ColorGrid 
-  baseColors={tokens['Colors/Value'].base}
-  fillColors={tokens['Colors/Value'].fill}
-  strokeColors={tokens['Colors/Value'].stroke}
-  textColors={tokens['Colors/Value'].text}
-  onColorClick={(color) => console.log(color)}
+<FoundationTab 
+  tokens={tokens['Foundation/Value'].base}
+  tokenMap={tokenMap}
+  onTokenClick={(token) => console.log(token)}
+/>
+```
+
+#### SemanticTab
+
+```tsx
+import { SemanticTab } from '@nibin-org/tokens';
+
+<SemanticTab 
+  tokens={tokens['Semantic/Value']}
+  tokenMap={tokenMap}
+  onTokenClick={(token) => console.log(token)}
+/>
+```
+
+#### ComponentsTab
+
+```tsx
+import { ComponentsTab } from '@nibin-org/tokens';
+
+<ComponentsTab 
+  components={mergedComponents}
+  onCopy={(value, label) => console.log(value)}
 />
 ```
 
@@ -217,18 +351,7 @@ import { ColorGrid } from '@nibin-org/tokens';
 import { SpacingScale } from '@nibin-org/tokens';
 
 <SpacingScale 
-  tokens={tokens['Spacing/Mode 1']}
-  onTokenClick={(token) => console.log(token)}
-/>
-```
-
-#### RadiusShowcase
-
-```tsx
-import { RadiusShowcase } from '@nibin-org/tokens';
-
-<RadiusShowcase 
-  tokens={tokens['Radius/Mode 1']}
+  tokens={tokens['Foundation/Value'].base.space}
   onTokenClick={(token) => console.log(token)}
 />
 ```
@@ -239,73 +362,23 @@ import { RadiusShowcase } from '@nibin-org/tokens';
 import { SizeScale } from '@nibin-org/tokens';
 
 <SizeScale 
-  tokens={tokens['Size/Mode 1']}
+  tokens={tokens['Foundation/Value'].base.size}
   onTokenClick={(token) => console.log(token)}
 />
 ```
 
-## 🎨 Theming & Customization
+#### RadiusShowcase
 
-The styles use CSS custom properties, making customization simple:
+```tsx
+import { RadiusShowcase } from '@nibin-org/tokens';
 
-```css
-:root {
-  /* Primary accent color */
-  --ftd-accent-primary: #6366f1;
-  --ftd-accent-primary-hover: #4f46e5;
-  
-  /* Background colors */
-  --ftd-bg-canvas: #fafbfc;
-  --ftd-bg-primary: #ffffff;
-  --ftd-bg-secondary: #f6f8fa;
-  
-  /* Text colors */
-  --ftd-text-primary: #0d1117;
-  --ftd-text-secondary: #57606a;
-  
-  /* Border radius */
-  --ftd-radius-lg: 16px;
-  --ftd-radius-xl: 24px;
-  
-  /* Shadows */
-  --ftd-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
-  --ftd-shadow-glow: 0 0 24px rgba(91, 71, 251, 0.2);
-  
-  /* Transitions */
-  --ftd-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Dark theme */
-[data-theme="dark"] {
-  --ftd-bg-canvas: #0d1117;
-  --ftd-bg-primary: #161b22;
-  --ftd-text-primary: #e6edf3;
-  /* ... customize more */
-}
+<RadiusShowcase 
+  tokens={tokens['Foundation/Value'].base.radius}
+  onTokenClick={(token) => console.log(token)}
+/>
 ```
 
-### Advanced Customization Example
-
-```css
-/* Custom gradient for your brand */
-:root {
-  --ftd-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-/* Custom card hover effect */
-.ftd-token-card:hover {
-  transform: translateY(-8px) rotate(2deg);
-}
-
-/* Custom color scale height */
-.ftd-color-shade {
-  height: 150px;
-}
-```
-
-## 📊 Figma-to-Code Workflow
-
-### Complete Design System Pipeline
+## 🎯 Production Workflow
 
 ```
 ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
@@ -314,78 +387,13 @@ The styles use CSS custom properties, making customization simple:
 │   Token Studio  │      │  (GitHub Sync)   │      │   CSS Variables │
 │                 │      │                  │      │                 │
 └─────────────────┘      └──────────────────┘      └─────────────────┘
-        │                         │                        │
-   Design tokens            Auto-sync via             @nibin-org/tokens
-   managed in Figma         Token Studio              generates beautiful
-                            plugin                     interactive docs
+         │                         │                        │
+    Design tokens            Auto-sync via             @nibin-org/tokens
+    managed in Figma         Token Studio              generates beautiful
+                             plugin                     interactive docs
 ```
 
-### Step-by-Step Setup
-
-#### 1. **Design Phase**: Create tokens in Figma
-- Install [Figma Tokens Studio](https://tokens.studio/) plugin
-- Create your design tokens (colors, spacing, typography, etc.)
-- Organize tokens with semantic naming (base → semantic)
-
-#### 2. **Sync Phase**: Export to your repository
-- In Token Studio, go to Settings → Sync
-- Choose "GitHub" and connect your repository
-- Set file path to `tokens.json`
-- Enable auto-sync for seamless updates
-
-#### 3. **Documentation Phase**: Generate beautiful docs
-```tsx
-import { TokenDocumentation } from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
-import tokens from './tokens.json'; // Auto-synced from Figma
-
-export default function TokensPage() {
-  return <TokenDocumentation tokens={tokens} />;
-}
-```
-
-#### 4. **Build Phase**: Generate CSS variables (Optional)
-```js
-// build-tokens.js
-const tokens = require('./tokens.json');
-const fs = require('fs');
-
-// Generate CSS custom properties
-const css = generateCSSVariables(tokens);
-fs.writeFileSync('src/styles/tokens.css', css);
-```
-
-### Real-World Example
-
-Our [live demo](https://nibin-org.github.io/tokens/) uses tokens exported directly from Figma Token Studio, showcasing:
-
-- **Base color palettes** with 50-900 shade scales
-- **Semantic tokens** (fill, stroke, text) with token references
-- **Spacing system** following 4px grid
-- **Typography scales** with consistent ratios
-- **Border radius** system from subtle to full rounds
-
-### Token Structure (Figma Token Studio Format)
-
-```json
-{
-  "Colors/Value": {
-    "base": {
-      "blue": {
-        "500": { "value": "#3b82f6", "type": "color" }
-      }
-    },
-    "fill": {
-      "primary": { "value": "{base.blue.500}", "type": "color" }
-    }
-  },
-  "Spacing/Mode 1": {
-    "space-4": { "value": "16px", "type": "dimension" }
-  }
-}
-```
-
-### Benefits of This Workflow
+### Benefits
 
 ✅ **Single Source of Truth**: Figma remains the design authority  
 ✅ **Automatic Sync**: Changes in Figma instantly update documentation  
@@ -394,132 +402,32 @@ Our [live demo](https://nibin-org.github.io/tokens/) uses tokens exported direct
 ✅ **Token References**: Semantic tokens automatically resolve base values  
 ✅ **Version Control**: All changes tracked in Git with full history
 
-### Example Build Script
+## 🎨 UX Features
 
-```js
-// scripts/build-tokens.js
-const fs = require('fs');
-const tokens = require('./tokens.json');
+### Smart Copy Behavior
 
-// Generate CSS variables
-const css = generateCSSVariables(tokens);
-fs.writeFileSync('src/styles/tokens.css', css);
+Click any token to copy the full CSS variable format:
 
-// Generate documentation page
-const docs = `
-import { TokenDocumentation } from '@nibin-org/tokens';
-import tokens from '../tokens.json';
+- **Foundation colors**: Copies `var(--base-blue-50)` 
+- **Semantic colors**: Copies `var(--fill-primary)`
+- **Spacing**: Copies `var(--base-space-md)`
+- **Sizes**: Copies `var(--base-size-lg)`
 
-export default function TokensPage() {
-  return <TokenDocumentation tokens={tokens} />;
-}
-`;
-fs.writeFileSync('src/pages/tokens.tsx', docs);
-```
+Ready to paste directly into your CSS! ✨
 
-## 🆚 Comparison with Style Dictionary
+### Responsive Toast Notifications
 
-| Feature | Style Dictionary | @nibin-org/tokens |
-|---------|-----------------|------------------|
-| **Token Transformation** | ✅ Excellent | ❌ Not included |
-| **Multi-platform Output** (iOS, Android, Web) | ✅ Yes | ❌ No |
-| **Visual Documentation** | ❌ None | ✅ Beautiful interactive UI |
-| **Interactive Exploration** | ❌ No | ✅ Click, search, copy |
-| **Copy-to-Clipboard** | ❌ No | ✅ Yes |
-| **Dark Mode Support** | ❌ No | ✅ Yes |
-| **Real-time Search** | ❌ No | ✅ Yes |
+- ✅ Shows what was copied
+- ✅ Auto-dismisses after 2 seconds
+- ✅ Handles rapid clicking (clears previous toast)
+- ✅ Premium animation
 
-### Use Both Together! 🤝
+### Visual Hierarchy
 
-**Best Practice**: Use **Style Dictionary** for token transformation and multi-platform output, and **@nibin-org/tokens** for beautiful documentation.
-
-```bash
-# 1. Transform tokens with Style Dictionary
-npx style-dictionary build
-
-# 2. Document tokens with @nibin-org/tokens
-# Import in your docs site
-```
-
-## 🎯 Real-World Examples
-
-### Storybook Integration
-
-```tsx
-// .storybook/preview.tsx
-import { TokenDocumentation } from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
-import tokens from '../design-tokens/tokens.json';
-
-export default {
-  title: 'Design System/Tokens',
-  component: TokenDocumentation,
-};
-
-export const AllTokens = () => (
-  <TokenDocumentation 
-    tokens={tokens}
-    title="Design System Tokens"
-    subtitle="Version 2.0 - Updated Jan 2025"
-  />
-);
-```
-
-### Documentation Site (Docusaurus, VitePress, etc.)
-
-```tsx
-// docs/design-tokens.tsx
-import { TokenDocumentation } from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
-import tokens from './tokens.json';
-
-export default function DesignTokensPage() {
-  return (
-    <div className="container">
-      <TokenDocumentation 
-        tokens={tokens}
-        defaultTab="colors"
-        onTokenClick={(token) => {
-          // Track analytics
-          analytics.track('token_copied', { name: token.name });
-        }}
-      />
-    </div>
-  );
-}
-```
-
-### Custom Integration
-
-```tsx
-import { 
-  ColorGrid, 
-  SpacingScale, 
-  parseBaseColors,
-  copyToClipboard 
-} from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
-
-function CustomTokenDocs() {
-  const colorFamilies = parseBaseColors(tokens['Colors/Value'].base);
-  
-  return (
-    <div>
-      <h1>Our Brand Colors</h1>
-      <ColorGrid 
-        baseColors={tokens['Colors/Value'].base}
-        onColorClick={(color) => {
-          copyToClipboard(color.value);
-          toast.success(`Copied ${color.value}`);
-        }}
-      />
-      
-      <h2>Spacing System</h2>
-      <SpacingScale tokens={tokens['Spacing/Mode 1']} />
-    </div>
-  );
-}
-```
+- **Full cards are clickable** - Entire token card is the click target
+- **Variables highlighted** - CSS variable name shown with opacity
+- **Hex values for reference** - Display-only, not separately clickable
+- **Cursor feedback** - Pointer cursor on clickable areas only
 
 ## 🛠️ Development
 
@@ -527,8 +435,8 @@ function CustomTokenDocs() {
 
 ```bash
 # Clone the repository
-git clone https://github.com/nibinlab99-dev/next-storybook.git
-cd next-storybook/packages/tokens
+git clone https://github.com/nibin-org/tokens.git
+cd tokens
 
 # Install dependencies
 npm install
@@ -536,14 +444,10 @@ npm install
 # Build the package
 npm run build
 
-# Run in watch mode
+# Run demo in development mode
+cd demo
+npm install
 npm run dev
-
-# Type checking
-npm run typecheck
-
-# Linting
-npm run lint
 ```
 
 ### Project Structure
@@ -552,16 +456,19 @@ npm run lint
 @nibin-org/tokens/
 ├── src/
 │   ├── components/
-│   │   ├── TokenDocumentation.tsx
-│   │   ├── ColorGrid.tsx
-│   │   ├── SpacingScale.tsx
-│   │   ├── RadiusShowcase.tsx
-│   │   └── SizeScale.tsx
-│   ├── types.ts
-│   ├── utils.ts
-│   ├── index.ts
-│   └── styles.css
-├── dist/                    # Built files (generated)
+│   │   ├── TokenDocumentation.tsx    # Main wrapper component
+│   │   ├── FoundationTab.tsx         # Foundation token display (v1.8.0)
+│   │   ├── SemanticTab.tsx           # Semantic token display (v1.8.0)
+│   │   ├── ComponentsTab.tsx         # Component token display (v1.8.0)
+│   │   ├── SpacingScale.tsx          # Spacing visualization
+│   │   ├── SizeScale.tsx             # Size visualization
+│   │   └── RadiusShowcase.tsx        # Border radius showcase
+│   ├── types.ts                      # TypeScript definitions
+│   ├── utils.ts                      # Utility functions
+│   ├── index.ts                      # Package exports
+│   └── styles.css                    # Component styles
+├── demo/                             # Next.js demo app
+├── dist/                             # Built files (generated)
 ├── package.json
 ├── tsconfig.json
 ├── tsup.config.ts
@@ -569,8 +476,6 @@ npm run lint
 ```
 
 ### Building
-
-The package uses [tsup](https://tsup.egoist.dev/) for fast, zero-config bundling:
 
 ```bash
 npm run build
@@ -580,7 +485,7 @@ This generates:
 - `dist/index.js` - ESM bundle
 - `dist/index.cjs` - CommonJS bundle
 - `dist/index.d.ts` - TypeScript definitions
-- `dist/styles.css` - Compiled styles
+- Styles copied to dist for import
 
 ## 📝 TypeScript Support
 
@@ -591,18 +496,21 @@ import type {
   TokenDocumentationProps,
   FigmaTokens,
   ParsedColorToken,
-  ParsedSpacingToken,
-  ColorFamily 
+  NestedTokens
 } from '@nibin-org/tokens';
 
 const tokens: FigmaTokens = {
-  'Colors/Value': {
+  'Foundation/Value': {
     base: { /* ... */ }
+  },
+  'Semantic/Value': {
+    fill: { /* ... */ }
   }
 };
 
 const handleTokenClick = (token: ParsedColorToken) => {
   console.log(token.cssVariable); // Type-safe!
+  console.log(token.value); // Type-safe!
 };
 ```
 
@@ -614,13 +522,28 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes
+4. Commit your changes (`git commit -m 'release: Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+### Publishing (Maintainers)
+
+The package auto-publishes to npm when commit messages contain `release:`:
+
+```bash
+git commit -m "release: Version 1.8.0 - Enhanced sidebar navigation"
+git push origin main
+```
+
+The GitHub Action will automatically:
+- Run tests
+- Build the package
+- Publish to npm with provenance
 
 ## 📄 License
 
-MIT © [nibinlab99-dev](https://github.com/nibinlab99-dev)
+MIT © [nibin-org](https://github.com/nibin-org)
 
 See [LICENSE](LICENSE) for more information.
 
@@ -629,14 +552,12 @@ See [LICENSE](LICENSE) for more information.
 - Built with ❤️ for design systems teams
 - Inspired by [Figma Tokens Studio](https://tokens.studio/)
 - Compatible with [Style Dictionary](https://amzn.github.io/style-dictionary/)
-- Typography powered by [DM Sans](https://fonts.google.com/specimen/DM+Sans) and [Fraunces](https://fonts.google.com/specimen/Fraunces)
 
 ## 📬 Support
 
-- 📧 Email: support@nibin.org
-- 💬 [GitHub Discussions](https://github.com/nibinlab99-dev/next-storybook/discussions)
-- 🐛 [Issue Tracker](https://github.com/nibinlab99-dev/next-storybook/issues)
-- 📖 [Documentation](https://docs.nibin.org)
+- 💬 [GitHub Discussions](https://github.com/nibin-org/tokens/discussions)
+- 🐛 [Issue Tracker](https://github.com/nibin-org/tokens/issues)
+- 📖 [Live Demo](https://nibin-org.github.io/tokens/)
 
 ---
 

@@ -2,13 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import type { TokenDocumentationProps, FigmaTokens, NestedTokens, VariantTokens, DimensionGroup } from '../types';
-import { ColorGrid } from './ColorGrid';
-import { SpacingScale } from './SpacingScale';
-import { RadiusShowcase } from './RadiusShowcase';
-import { SizeScale } from './SizeScale';
-import { createTokenMap, resolveTokenValue, findAllTokens, parseBaseColors, parseSemanticColors, parseSpacingTokens, parseSizeTokens, parseRadiusTokens } from '../utils';
+import { FoundationTab } from './FoundationTab';
+import { SemanticTab } from './SemanticTab';
+import { ComponentsTab } from './ComponentsTab';
+import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils';
 
-type TabType = string;
+type TabType = 'foundation' | 'semantic' | 'components';
 
 interface ComponentData {
     variants: Record<string, VariantTokens>;
@@ -17,6 +16,7 @@ interface ComponentData {
 
 /**
  * TokenDocumentation - Production-ready Design System Documentation
+ * Displays tokens in three main tabs: Foundation, Semantic, and Components
  */
 export function TokenDocumentation({
     tokens,
@@ -27,76 +27,60 @@ export function TokenDocumentation({
     darkMode: initialDarkMode = false,
     onTokenClick,
 }: TokenDocumentationProps) {
-    const [activeTab, setActiveTab] = useState<TabType | null>(defaultTab || null);
-    const [searchQuery, setSearchQuery] = useState('');
+    // State
+    const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-    // --- 1. Create Global Token Map for Resolution ---
-    const tokenMap = useMemo(() => createTokenMap(tokens), [tokens]);
+    // --- Extract the three main token sets ---
+    const { foundationTokens, semanticTokens, componentTokens } = useMemo(() => {
+        const foundationData = (tokens as any)["Foundation/Value"] || {};
+        // Foundation tokens are nested under 'base', extract that level
+        const foundation = foundationData.base || foundationData;
 
-    // --- 2. Dynamic Category Detection ---
-    const categorizedData = useMemo(() => {
-        const categories: Record<string, Record<string, any>> = {
-            colors: {},
-            spacing: {},
-            sizes: {},
-            radius: {},
-            components: {}
+        const semantic = (tokens as any)["Semantic/Value"] || {};
+
+        // Extract all component sets (e.g., "Components/Mode 1", "Components/Mode 2", etc.)
+        const components = Object.entries(tokens)
+            .filter(([key]) => key.startsWith("Components/"))
+            .reduce((acc, [key, val]) => {
+                // Merge all component sets
+                if (val && typeof val === 'object') {
+                    return { ...acc, ...val };
+                }
+                return acc;
+            }, {});
+
+        return {
+            foundationTokens: foundation,
+            semanticTokens: semantic,
+            componentTokens: components,
         };
-
-        const isSingleToken = (obj: any): boolean =>
-            obj && typeof obj === 'object' && obj.hasOwnProperty('value') && obj.hasOwnProperty('type');
-
-        // Helper to detect type of a token set
-        const detectType = (set: any, name: string): string => {
-            const allTokens = findAllTokens(set);
-            if (allTokens.length === 0) return 'other';
-
-            const nameLower = name.toLowerCase();
-
-            // 1. Explicit naming cues take priority for Components
-            if (nameLower.includes('button') || nameLower.includes('card') || nameLower.includes('input') || nameLower.includes('comp-')) {
-                return 'components';
-            }
-
-            // 2. Check if it's a semantic color set (Colors/Value pattern)
-            if (set.base || set.fill || set.stroke || set.text) return 'colors';
-
-            const types = new Set(allTokens.map(t => t.token.type));
-
-            // 3. Structural cues
-            // If it has deeply nested structures that aren't tokens, and it's not a known dimension/color set, it's likely components
-            const hasNestedNonTokens = Object.values(set).some(v => v && typeof v === 'object' && !isSingleToken(v));
-
-            // If it contains multiple sub-objects at the root that aren't tokens, it's likely a component library
-            if (hasNestedNonTokens) {
-                // If the name mentions colors/values, it might be a weirdly nested color set
-                if (nameLower.includes('color') || nameLower.includes('palette')) return 'colors';
-                return 'components';
-            }
-
-            // 4. Default to token type detection
-            if (types.has('color')) return 'colors';
-            if (types.has('spacing') || nameLower.includes('space') || nameLower.includes('spacing')) return 'spacing';
-            if (types.has('sizing') || ['size', 'width', 'height'].some(n => nameLower.includes(n))) return 'sizes';
-            if (types.has('borderRadius') || nameLower.includes('radius') || nameLower.includes('border')) return 'radius';
-
-            return 'other';
-        };
-
-        Object.entries(tokens).forEach(([key, value]) => {
-            if (['global', '$themes', '$metadata'].includes(key)) return;
-            const type = detectType(value, key);
-            if (categories[type]) {
-                categories[type][key] = value;
-            }
-        });
-
-        return categories;
     }, [tokens]);
 
-    // --- 3. Component Processing (Dynamic Variants) ---
+    // --- Create Global Token Map for Resolution ---
+    const tokenMap = useMemo(() => createTokenMap(tokens), [tokens]);
+
+    // --- Determine which tabs to show ---
+    const availableTabs = useMemo(() => {
+        const tabs: Array<{ id: TabType; label: string; icon: string }> = [];
+
+        if (Object.keys(foundationTokens).length > 0) {
+            tabs.push({ id: 'foundation', label: 'Foundation', icon: '🏗️' });
+        }
+
+        if (Object.keys(semanticTokens).length > 0) {
+            tabs.push({ id: 'semantic', label: 'Semantic', icon: '🎨' });
+        }
+
+        if (Object.keys(componentTokens).length > 0) {
+            tabs.push({ id: 'components', label: 'Components', icon: '🧩' });
+        }
+
+        return tabs;
+    }, [foundationTokens, semanticTokens, componentTokens]);
+
+    // --- Component Processing (Dynamic Variants) ---
     const mergedComponents = useMemo(() => {
         const components: Record<string, ComponentData> = {};
 
@@ -109,51 +93,23 @@ export function TokenDocumentation({
             return values.length > 0 && values.every((v: any) => isSingleToken(v) && (v.type === 'dimension' || v.type === 'spacing' || v.type === 'sizing' || v.type === 'borderRadius'));
         };
 
-        Object.entries(categorizedData.components || {}).forEach(([_, setData]) => {
-            Object.entries(setData as any).forEach(([compName, content]) => {
-                if (!content || typeof content !== 'object' || isSingleToken(content)) return;
+        Object.entries(componentTokens).forEach(([compName, content]) => {
+            if (!content || typeof content !== 'object' || isSingleToken(content)) return;
 
-                if (!components[compName]) components[compName] = { variants: {}, dimensions: {} };
+            if (!components[compName]) components[compName] = { variants: {}, dimensions: {} };
 
-                Object.entries(content as any).forEach(([itemKey, itemValue]) => {
-                    if (isDimensionGroup(itemValue)) {
-                        components[compName].dimensions[itemKey] = itemValue as DimensionGroup;
-                    } else if (typeof itemValue === 'object' && !isSingleToken(itemValue)) {
-                        // It's a variant (e.g. "Primary", "Ghost", "Large")
-                        components[compName].variants[itemKey] = itemValue as VariantTokens;
-                    }
-                });
+            Object.entries(content as any).forEach(([itemKey, itemValue]) => {
+                if (isDimensionGroup(itemValue)) {
+                    components[compName].dimensions[itemKey] = itemValue as DimensionGroup;
+                } else if (typeof itemValue === 'object' && !isSingleToken(itemValue)) {
+                    // It's a variant (e.g. "Primary", "Ghost", "Large")
+                    components[compName].variants[itemKey] = itemValue as VariantTokens;
+                }
             });
         });
+
         return components;
-    }, [categorizedData]);
-
-    // --- 4. Available Tabs ---
-    const availableTabs = useMemo(() => {
-        const tabs: Array<{ id: string; label: string; icon: string }> = [];
-        const config: Record<string, { label: string; icon: string }> = {
-            colors: { label: 'Colors', icon: '🎨' },
-            spacing: { label: 'Spacing', icon: '📏' },
-            sizes: { label: 'Sizes', icon: '📐' },
-            radius: { label: 'Radius', icon: '⬜' },
-            components: { label: 'Components', icon: '🧩' }
-        };
-
-        Object.keys(config).forEach(type => {
-            const hasData = type === 'components'
-                ? Object.keys(mergedComponents).length > 0
-                : Object.keys(categorizedData[type] || {}).length > 0;
-
-            if (hasData) {
-                tabs.push({ id: type, ...config[type] });
-            }
-        });
-        return tabs;
-    }, [categorizedData, mergedComponents]);
-
-    const currentTab = activeTab && availableTabs.some(t => t.id === activeTab)
-        ? activeTab
-        : (availableTabs[0]?.id || 'colors');
+    }, [componentTokens]);
 
     // --- Interaction ---
     const handleCopy = (value: string, label: string) => {
@@ -303,7 +259,7 @@ export function TokenDocumentation({
                         {availableTabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                className={`ftd-tab ${currentTab === tab.id ? 'active' : ''}`}
+                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
                             >
                                 <span style={{ marginRight: '8px' }}>{tab.icon}</span>
@@ -315,68 +271,27 @@ export function TokenDocumentation({
             </div>
 
             <div className="ftd-content">
-                {currentTab === 'colors' && Object.entries(categorizedData.colors || {}).map(([setName, setData]) => (
-                    <div key={setName} className="ftd-set-section">
-                        {Object.keys(categorizedData.colors).length > 1 && <h2 className="ftd-set-title">{setName}</h2>}
-                        <ColorGrid
-                            baseColors={setData.base}
-                            fillColors={setData.fill}
-                            strokeColors={setData.stroke}
-                            textColors={setData.text}
-                            tokenMap={tokenMap}
-                            onColorClick={onTokenClick}
-                        />
-                    </div>
-                ))}
+                {activeTab === 'foundation' && (
+                    <FoundationTab
+                        tokens={foundationTokens}
+                        tokenMap={tokenMap}
+                        onTokenClick={onTokenClick}
+                    />
+                )}
 
-                {currentTab === 'spacing' && Object.entries(categorizedData.spacing || {}).map(([setName, setData]) => (
-                    <div key={setName} className="ftd-set-section">
-                        {Object.keys(categorizedData.spacing).length > 1 && <h2 className="ftd-set-title">{setName}</h2>}
-                        <SpacingScale tokens={setData} onTokenClick={onTokenClick} />
-                    </div>
-                ))}
+                {activeTab === 'semantic' && (
+                    <SemanticTab
+                        tokens={semanticTokens}
+                        tokenMap={tokenMap}
+                        onTokenClick={onTokenClick}
+                    />
+                )}
 
-                {currentTab === 'sizes' && Object.entries(categorizedData.sizes || {}).map(([setName, setData]) => (
-                    <div key={setName} className="ftd-set-section">
-                        {Object.keys(categorizedData.sizes).length > 1 && <h2 className="ftd-set-title">{setName}</h2>}
-                        <SizeScale tokens={setData} onTokenClick={onTokenClick} />
-                    </div>
-                ))}
-
-                {currentTab === 'radius' && Object.entries(categorizedData.radius || {}).map(([setName, setData]) => (
-                    <div key={setName} className="ftd-set-section">
-                        {Object.keys(categorizedData.radius).length > 1 && <h2 className="ftd-set-title">{setName}</h2>}
-                        <RadiusShowcase tokens={setData} onTokenClick={onTokenClick} />
-                    </div>
-                ))}
-
-                {currentTab === 'components' && (
-                    <div className="ftd-components-showcase">
-                        {Object.entries(mergedComponents).map(([name, data]) => {
-                            const variants = Object.keys(data.variants);
-                            if (variants.length === 0) return null;
-
-                            return (
-                                <div key={name} className="ftd-component-section">
-                                    <div className="ftd-section-header">
-                                        <h3 className="ftd-section-title">{name}</h3>
-                                        <span className="ftd-section-badge">{variants.length} Variants</span>
-                                    </div>
-
-                                    <div className="ftd-variants-grid">
-                                        {variants.map(v => (
-                                            <VariantCard
-                                                key={v}
-                                                variantName={v}
-                                                variantTokens={data.variants[v]}
-                                                dimensionGroups={data.dimensions}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                {activeTab === 'components' && (
+                    <ComponentsTab
+                        components={mergedComponents}
+                        onCopy={handleCopy}
+                    />
                 )}
             </div>
         </div>

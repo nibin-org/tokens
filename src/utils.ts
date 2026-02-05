@@ -274,6 +274,47 @@ export function parseSizeTokens(tokens: NestedTokens): ParsedSizeToken[] {
 }
 
 /**
+ * Extract all token groups from a nested object
+ * Returns a map of group names to their token contents
+ */
+export function extractTokenGroups(setData: any): Record<string, NestedTokens> {
+  const groups: Record<string, NestedTokens> = {};
+  
+  if (!setData || typeof setData !== 'object') return groups;
+  
+  Object.entries(setData).forEach(([key, value]) => {
+    if (typeof value === 'object' && value !== null) {
+      groups[key] = value as NestedTokens;
+    }
+  });
+  
+  return groups;
+}
+
+/**
+ * Detect the primary type of tokens in a group
+ */
+export function detectTokenType(tokens: NestedTokens): 'color' | 'spacing' | 'sizing' | 'radius' | 'typography' | 'other' {
+  const allTokens = findAllTokens(tokens);
+  if (allTokens.length === 0) return 'other';
+  
+  const types = new Set(allTokens.map(t => t.token.type));
+  
+  if (types.has('color')) return 'color';
+  if (types.has('spacing')) return 'spacing';
+  if (types.has('sizing')) return 'sizing';
+  if (types.has('borderRadius')) return 'radius';
+  
+  // Check for typography by checking common font properties
+  const firstTokenPath = allTokens[0]?.path.toLowerCase() || '';
+  if (firstTokenPath.includes('font') || firstTokenPath.includes('line-height') || firstTokenPath.includes('letter-spacing')) {
+    return 'typography';
+  }
+  
+  return 'other';
+}
+
+/**
  * Copy text to clipboard
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
