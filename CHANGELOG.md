@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-02-05
+
+### Added
+- **Export Functionality** 📤 - A powerful new way to use tokens in your code!
+  - Export to **CSS Variables**, **SCSS**, **JSON**, and **Tailwind CSS config**.
+  - New **Export Modal** with live code preview and tabbed interface.
+  - **Copy-to-Clipboard** and **Download** functionality for all formats.
+  - Smart **Alias Resolution**: Semantic and Component tokens now correctly reference Foundation variables (e.g., `var(--base-...)` in CSS, `$base-...` in SCSS) instead of raw aliases.
+- **Header UI Refinements** ✨:
+  - Redesigned search, export, and theme buttons with a modern light blue aesthetic.
+  - Increased search box width to **280px** for better prominence and UX.
+  - Standardized all header actions to a consistent **40px height** and professional border radii.
+
+### Changed
+- **Package size**: 135.6 KB (+18 KB for export feature)
+  - ESM: 46 KB
+  - CJS: 50 KB
+  - CSS: 25 KB
+
 ## [1.9.0] - 2026-02-05
 
 ### Added

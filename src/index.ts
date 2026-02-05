@@ -27,6 +27,7 @@ export { FoundationTab } from './components/FoundationTab';
 export { SemanticTab } from './components/SemanticTab';
 export { ComponentsTab } from './components/ComponentsTab';
 export { SearchModal } from './components/SearchModal';
+export { ExportModal } from './components/ExportModal';
 
 // Types
 export type {
@@ -59,3 +60,11 @@ export {
   createTokenMap,
   resolveTokenValue,
 } from './utils';
+
+export {
+  generateCSS,
+  generateSCSS,
+  generateJS,
+  generateTailwind,
+  getFlattenedTokens,
+} from './utils/exportUtils';

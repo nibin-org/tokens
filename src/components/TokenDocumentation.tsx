@@ -6,6 +6,7 @@ import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
 import { SearchModal } from './SearchModal';
+import { ExportModal } from './ExportModal';
 import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils';
 
 type TabType = 'foundation' | 'semantic' | 'components';
@@ -33,6 +34,7 @@ export function TokenDocumentation({
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [exportOpen, setExportOpen] = useState(false);
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
@@ -312,6 +314,14 @@ export function TokenDocumentation({
                         <p className="ftd-subtitle">{subtitle}</p>
                     </div>
                     <div className="ftd-header-actions">
+                        <button className="ftd-export-button-nav" onClick={() => setExportOpen(true)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Export</span>
+                        </button>
                         <button className="ftd-search-button" onClick={() => setSearchOpen(true)} title="Search tokens (Cmd+K)">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8"></circle>
@@ -375,6 +385,13 @@ export function TokenDocumentation({
                 onTokenClick={onTokenClick}
                 onNavigateToTab={(tab) => setActiveTab(tab)}
                 onScrollToToken={handleScrollToToken}
+            />
+
+            {/* Export Modal */}
+            <ExportModal
+                isOpen={exportOpen}
+                onClose={() => setExportOpen(false)}
+                tokens={tokens}
             />
         </div>
     );
