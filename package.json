@@ -1,6 +1,6 @@
 {
   "name": "@nibin-org/tokens",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -63,7 +63,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nibin-org/tokens"
+    "url": "git+https://github.com/nibin-org/tokens.git"
   },
   "homepage": "https://github.com/nibin-org/tokens#readme",
   "bugs": {
