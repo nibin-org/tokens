@@ -7,9 +7,10 @@ import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
 import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
+import { PlaygroundTab } from './PlaygroundTab';
 import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils/core';
 
-type TabType = 'foundation' | 'semantic' | 'components';
+type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
 
 interface ComponentData {
     variants: Record<string, VariantTokens>;
@@ -165,6 +166,9 @@ export function TokenDocumentation({
         if (Object.keys(componentTokens).length > 0) {
             tabs.push({ id: 'components', label: 'Components', icon: '🧩' });
         }
+
+        // Always add Playground
+        tabs.push({ id: 'playground', label: 'Playground', icon: '🎮' });
 
         return tabs;
     }, [foundationTokens, semanticTokens, componentTokens]);
@@ -374,7 +378,7 @@ export function TokenDocumentation({
                 </header>
 
                 {availableTabs.length > 1 && (
-                    <nav className="ftd-tabs">
+                    <nav className="ftd-tabs" aria-label="Documentation types">
                         {availableTabs.map((tab) => (
                             <button
                                 key={tab.id}
@@ -410,6 +414,13 @@ export function TokenDocumentation({
                     <ComponentsTab
                         components={mergedComponents}
                         onCopy={handleCopy}
+                    />
+                )}
+
+                {activeTab === 'playground' && (
+                    <PlaygroundTab
+                        tokens={tokens}
+                        tokenMap={tokenMap}
                     />
                 )}
             </div>
