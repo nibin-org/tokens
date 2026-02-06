@@ -41,7 +41,7 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
         <div className="ftd-section">
             <div className="ftd-section-header">
                 <div className="ftd-section-icon">📏</div>
-                <h3 className="ftd-section-title">Spacing Scale</h3>
+                <h2 className="ftd-section-title">Spacing Scale</h2>
                 <span className="ftd-section-count">{spacingTokens.length} tokens</span>
             </div>
 
@@ -50,7 +50,7 @@ export function SpacingScale({ tokens, onTokenClick }: SpacingScaleProps) {
                     const widthPercent = (token.numericValue / maxValue) * 100;
 
                     return (
-                        <div key={token.name} className="ftd-spacing-item">
+                        <div key={token.name} className="ftd-spacing-item" data-token-name={token.name}>
                             <span className="ftd-spacing-label">{token.name}</span>
                             <div className="ftd-spacing-bar-container">
                                 <div

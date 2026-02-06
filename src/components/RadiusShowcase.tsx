@@ -40,13 +40,13 @@ export function RadiusShowcase({ tokens, onTokenClick }: RadiusShowcaseProps) {
         <div className="ftd-section">
             <div className="ftd-section-header">
                 <div className="ftd-section-icon">⬜</div>
-                <h3 className="ftd-section-title">Border Radius</h3>
+                <h2 className="ftd-section-title">Border Radius</h2>
                 <span className="ftd-section-count">{radiusTokens.length} tokens</span>
             </div>
 
             <div className="ftd-radius-grid">
                 {radiusTokens.map((token) => (
-                    <div key={token.name} className="ftd-radius-item">
+                    <div key={token.name} className="ftd-radius-item" data-token-name={token.name}>
                         <div className="ftd-radius-preview-container">
                             <div
                                 className="ftd-radius-preview"

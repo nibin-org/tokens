@@ -45,7 +45,7 @@ export function ComponentsTab({ components, onCopy }: ComponentsTabProps) {
         return (
             <div className="ftd-empty">
                 <div className="ftd-empty-icon">🧩</div>
-                <h4 className="ftd-empty-title">No component tokens found</h4>
+                <h3 className="ftd-empty-title">No component tokens found</h3>
                 <p className="ftd-empty-text">Add component tokens to your tokens.json file</p>
             </div>
         );
@@ -111,7 +111,7 @@ function ComponentDisplay({
         <div className="ftd-section">
             <div className="ftd-section-header">
                 <div className="ftd-section-icon">🧩</div>
-                <h3 className="ftd-section-title">{name}</h3>
+                <h2 className="ftd-section-title">{name}</h2>
                 {variants.length > 0 && (
                     <span className="ftd-section-badge">{variants.length} Variants</span>
                 )}
@@ -125,7 +125,7 @@ function ComponentDisplay({
                 <div className="ftd-dimensions-display">
                     {Object.entries(data.dimensions).map(([dimName, dimGroup]) => (
                         <div key={dimName} className="ftd-dimension-group">
-                            <h4 className="ftd-dimension-title">{dimName}</h4>
+                            <h3 className="ftd-dimension-title">{dimName}</h3>
                             <div className="ftd-dimension-items">
                                 {Object.entries(dimGroup as any).map(([sizeName, sizeToken]: [string, any]) => (
                                     <div

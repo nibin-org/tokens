@@ -41,7 +41,7 @@ export function SizeScale({ tokens, onTokenClick }: SizeScaleProps) {
         <div className="ftd-section">
             <div className="ftd-section-header">
                 <div className="ftd-section-icon">📐</div>
-                <h3 className="ftd-section-title">Size Scale</h3>
+                <h2 className="ftd-section-title">Size Scale</h2>
                 <span className="ftd-section-count">{sizeTokens.length} tokens</span>
             </div>
 
@@ -68,7 +68,7 @@ export function SizeScale({ tokens, onTokenClick }: SizeScaleProps) {
             {/* Detailed Token List */}
             <div className="ftd-spacing-list">
                 {sizeTokens.map((token) => (
-                    <div key={token.name} className="ftd-spacing-item">
+                    <div key={token.name} className="ftd-spacing-item" data-token-name={token.name}>
                         <span className="ftd-spacing-label">{token.name}</span>
                         <div className="ftd-spacing-bar-container">
                             <div

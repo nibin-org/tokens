@@ -108,20 +108,21 @@ export function ColorGrid({
                     <div id="base-colors" className="ftd-section ftd-color-section">
                         <div className="ftd-section-header">
                             <div className="ftd-section-icon">🎨</div>
-                            <h3 className="ftd-section-title">Base Colors</h3>
+                            <h2 className="ftd-section-title">Base Colors</h2>
                         </div>
                         <div className="ftd-color-family-container">
                             {colorFamilies.map((family) => (
                                 <div key={family.name} className="ftd-color-family">
                                     <div className="ftd-color-family-header">
                                         <div className="ftd-color-family-swatch" style={{ backgroundColor: family.primaryColor }} />
-                                        <h4 className="ftd-color-family-name">{family.name}</h4>
+                                        <h3 className="ftd-color-family-name">{family.name}</h3>
                                     </div>
                                     <div className="ftd-color-scale">
                                         {family.shades.map((shade) => (
                                             <div
                                                 key={shade.name}
                                                 className="ftd-color-shade"
+                                                data-token-name={shade.name}
                                                 style={{
                                                     backgroundColor: shade.resolvedValue || shade.value,
                                                     color: getContrastColor(shade.resolvedValue || shade.value),
@@ -153,14 +154,14 @@ export function ColorGrid({
                     <div key={section.id} id={section.id} className="ftd-section ftd-color-section">
                         <div className="ftd-section-header">
                             <div className="ftd-section-icon">{section.icon}</div>
-                            <h3 className="ftd-section-title">{section.title}</h3>
+                            <h2 className="ftd-section-title">{section.title}</h2>
                         </div>
                         <div className="ftd-semantic-families">
                             {groupColorsByFamily(section.data).map((group) => (
                                 <div key={group.family} className="ftd-semantic-family">
                                     <div className="ftd-semantic-family-header">
                                         <div className="ftd-color-family-swatch" style={{ backgroundColor: group.primaryColor }} />
-                                        <h4 className="ftd-color-family-name">{group.family}</h4>
+                                        <h3 className="ftd-color-family-name">{group.family}</h3>
                                     </div>
                                     <div className="ftd-semantic-family-colors">
                                         {group.colors.map((color) => (

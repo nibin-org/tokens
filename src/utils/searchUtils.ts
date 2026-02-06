@@ -84,7 +84,7 @@ function indexFoundationTokens(baseTokens: NestedTokens): SearchableToken[] {
     if (typeof family === 'object' && family !== null && !('value' in family)) {
       // It's a nested object (like colors, spacing, etc.)
       Object.entries(family).forEach(([tokenName, tokenValue]) => {
-        if (typeof tokenValue === 'object' && 'value' in tokenValue) {
+        if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
           const value = String(tokenValue.value);
           const cssVar = `--base-${familyName}-${tokenName}`;
           
@@ -116,7 +116,7 @@ function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>): Sear
     if (!categoryTokens) return;
     
     Object.entries(categoryTokens).forEach(([tokenName, tokenValue]) => {
-      if (typeof tokenValue === 'object' && 'value' in tokenValue) {
+      if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
         const value = String(tokenValue.value);
         const cssVar = `--${category}-${tokenName}`;
         
@@ -147,7 +147,7 @@ function indexComponentTokens(components: Record<string, any>): SearchableToken[
       Object.entries(component).forEach(([dimensionName, dimension]) => {
         if (typeof dimension === 'object' && dimension !== null) {
           Object.entries(dimension).forEach(([variantName, tokenValue]) => {
-            if (typeof tokenValue === 'object' && 'value' in tokenValue) {
+            if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
               const value = String(tokenValue.value);
               const cssVar = `--${componentName}-${dimensionName}-${variantName}`;
               

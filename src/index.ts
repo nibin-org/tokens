@@ -29,6 +29,9 @@ export { ComponentsTab } from './components/ComponentsTab';
 export { SearchModal } from './components/SearchModal';
 export { ExportModal } from './components/ExportModal';
 
+// Standalone Components
+export { Spacing, Colors, Sizes, Radius } from './components/StandaloneComponents';
+
 // Types
 export type {
   TokenDocumentationProps,

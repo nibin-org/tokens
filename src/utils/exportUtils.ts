@@ -38,10 +38,10 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
 export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
   const flattened: ExportableToken[] = [];
 
-  // Helper to determine type
   const determineType = (name: string) => {
     const n = name.toLowerCase();
-    if (n.includes('color') || n.includes('fill') || n.includes('stroke')) return 'color';
+    if (n.includes('color') || n.includes('fill') || n.includes('stroke') || 
+        ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'cyan', 'gray', 'slate'].some(c => n.includes(c))) return 'color';
     if (n.includes('space') || n.includes('spacing')) return 'spacing';
     if (n.includes('size')) return 'size';
     if (n.includes('radius')) return 'radius';
@@ -57,7 +57,7 @@ export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
         Object.entries(family).forEach(([tokenName, tokenValue]: [string, any]) => {
           if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue) {
             flattened.push({
-              name: `${familyName}-${tokenName}`,
+              name: `base-${familyName}-${tokenName}`,
               value: String(tokenValue.value),
               cssVariable: `--base-${familyName}-${tokenName}`,
               type: determineType(familyName),
@@ -188,6 +188,9 @@ export function generateJS(tokens: FigmaTokens): string {
   const jsObj: Record<string, string> = {};
   
   flattened.forEach(t => {
+    // For JS, we either resolve the alias or return raw value
+    // If it's an alias {path.to.token}, we try to find the final value
+    // For now, let's just use the raw value but we could add a resolver here
     jsObj[t.name] = t.value;
   });
 
@@ -212,8 +215,8 @@ export function generateTailwind(tokens: FigmaTokens): string {
   };
 
   flattened.forEach(t => {
-    // Simplify name for Tailwind (remove category prefixes if they exist)
-    const cleanName = t.name.replace(/^(fill-|stroke-|text-|base-)/, '');
+    // For Tailwind, we keep the full name for clarity
+    const cleanName = t.name;
     
     if (t.type === 'color') {
       config.theme.extend.colors[cleanName] = `var(${t.cssVariable})`;

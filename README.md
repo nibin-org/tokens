@@ -47,6 +47,26 @@ function App() {
 
 ---
 
+## 🧩 Standalone Components
+
+Want to build a custom layout? You can use our **Standalone Components** to render specific token categories anywhere. They automatically find the relevant data in your `tokens.json`.
+
+```tsx
+import { Colors, Spacing, Radius, Sizes } from '@nibin-org/tokens';
+
+function CustomDocs() {
+  return (
+    <div>
+      <Colors tokens={tokens} title="Brand Colors" />
+      <Spacing tokens={tokens} title="Layout Spacing" />
+      <Radius tokens={tokens} title="Corner Styles" />
+    </div>
+  );
+}
+```
+
+---
+
 ## 🏗️ Mastering Tokens
 
 `@nibin-org/tokens` is designed to work seamlessly with [Figma Tokens Studio](https://tokens.studio/) (W3C Design Token format). 

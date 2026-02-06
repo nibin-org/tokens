@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-02-06
+
+### Added
+- **Dark Mode Modal Support** 🌙: Enhanced Search and Export modals with dedicated dark mode styling for improved readability and brand consistency.
+- **Standalone Components** 🏗️: New `Colors`, `Spacing`, `Sizes`, and `Radius` components exported for standalone use, allowing you to build custom documentation layouts.
+- **Testing Suite** 🧪: Integrated Vitest with a comprehensive suite of unit and component tests (85%+ coverage) ensuring long-term stability.
+- **Typography Improvements** 🔤: Better detection and grouping of font-size and line-height tokens in the Foundation tab.
+
+### Fixed
+- **Dark Theme Refinements**: Fixed modal background, text contrast, and active tab highlights in dark mode.
+- **Search UX**: Improved scroll behavior and keyboard navigation in the search results.
+- **Build Quality**: Verified fresh builds for ESM and CommonJS with updated dependency mappings.
+
 ## [1.10.1] - 2026-02-05
 
 ### Added

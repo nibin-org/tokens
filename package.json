@@ -1,6 +1,6 @@
 {
   "name": "@nibin-org/tokens",
-  "version": "1.10.1",
+  "version": "1.11.0",
   "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -36,7 +36,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "keywords": [
     "figma",
@@ -74,12 +75,19 @@
     "react-dom": ">=18.0.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^5.1.3",
+    "jsdom": "^28.0.0",
     "lightningcss-cli": "^1.31.1",
+    "lodash-es": "^4.17.23",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18",
+    "vitest-axe": "^0.1.0"
   }
 }

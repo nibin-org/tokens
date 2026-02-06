@@ -115,3 +115,10 @@ export interface TokenCardProps {
   type: 'color' | 'spacing' | 'radius' | 'size';
   onClick?: () => void;
 }
+
+// Standalone Component Props
+export interface StandaloneTokenProps {
+  tokens: FigmaTokens;
+  onTokenClick?: (token: any) => void;
+  title?: string;
+}
