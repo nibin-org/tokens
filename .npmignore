@@ -7,6 +7,7 @@ src/
 # Config files
 tsconfig.json
 tsup.config.ts
+vitest.config.ts
 .eslintrc*
 .prettierrc*
 
@@ -26,13 +27,19 @@ coverage/
 *.test.*
 *.spec.*
 __tests__/
+tests/
 
 # Documentation
 docs/
 examples/
 demo/
+assets/
+GUIDE.md
+CONTRIBUTING.md
+CHANGELOG.md
 
 # Misc
 *.log
 .DS_Store
 Thumbs.db
+tokens.json

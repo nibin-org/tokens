@@ -2,31 +2,32 @@
 
 <div align="center">
 
-![npm version](https://img.shields.io/badge/version-1.13.2-5b47fb?style=for-the-badge&colorA=000000)
+![npm version](https://img.shields.io/badge/version-1.13.3-5b47fb?style=for-the-badge&colorA=000000)
 ![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
-**The most "loveable" way to document and use your design tokens.**
+**Transform your design tokens into beautiful, interactive documentation.**
 
-[Demo](https://nibin-org.github.io/tokens/) · [Issues](https://github.com/nibin-org/tokens/issues)
+Visualize colors, spacing, typography, and more with zero configuration.
+
+[Live Demo](https://nibin-org.github.io/tokens/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokens/issues)
 
 </div>
 
 ---
 
-## 📚 Workflow Guide
-**New to Design Tokens?** Learn how to set up Figma, Token Studio, and GitHub Sync in our **[Design Token Workflow Guide](./GUIDE.md)**.
+## ✨ Why This Package?
 
----
+Most design token documentation is boring, static, and hard to navigate. **@nibin-org/tokens** gives you:
 
-## 💎 Best in Segment Features
+- 🎨 **Beautiful Visuals** - Interactive color palettes, spacing scales, and component previews
+- ⚡ **Instant Search** - Press `Cmd+K` to find any token instantly
+- 📤 **Code Export** - Generate CSS, SCSS, JavaScript, or Tailwind configs with one click
+- 🌙 **Dark Mode** - Seamless theme switching built-in
+- 🔗 **Smart Aliases** - Automatically resolves Figma Token Studio references
+- 📦 **Zero Dependencies** - Lightweight and fast
 
-- 🔍 **Global Search** - `Cmd+K` to find any token across Foundation, Semantic, or Components instantly.
-- 📤 **Code Export** - Generate and download **CSS**, **SCSS**, **JS**, or **Tailwind** configs directly from the UI.
-- 🎨 **Smart Visualization** - Interactive color palettes, spacing scales, and component previews that feel premium.
-- 🧠 **Alias Resolution** - Intelligent engine that resolves Figma Token Studio aliases into production-ready code.
-- 🌙 **Adaptive Themes** - Seamless dark and light mode support out of the box.
-- 📦 **Ultra Lightweight** - Zero external dependencies.
+> **Perfect for design systems, component libraries, and developer handoffs.**
 
 ---
 
@@ -38,97 +39,135 @@
 npm install @nibin-org/tokens
 ```
 
-### Usage
+### Basic Usage
+
+Import your tokens JSON file (from Figma Token Studio, Style Dictionary, or any W3C Design Token format) and you're done:
 
 ```tsx
 import { TokenDocumentation } from '@nibin-org/tokens';
 import '@nibin-org/tokens/styles.css';
 import tokens from './tokens.json';
 
-function App() {
+export default function DesignSystem() {
   return <TokenDocumentation tokens={tokens} />;
 }
 ```
 
+That's it! 🎉 Your tokens are now beautifully documented with:
+- Interactive color swatches with hex/RGB values
+- Visual spacing and sizing scales
+- Border radius previews
+- Copy-to-clipboard functionality
+- Global search with `Cmd+K`
+
 ---
 
-## 🧩 Standalone Components
+## 📋 What You Get
 
-Want to build a custom layout? You can use our **Standalone Components** to render specific token categories anywhere. They automatically find the relevant data in your `tokens.json`.
+### Foundation Tokens
+Display your primitive values (base colors, spacing units, sizes) with automatic color family grouping and visual scales.
+
+### Semantic Tokens
+Document intent-based tokens (primary, danger, success) with their resolved values and usage context.
+
+### Component Tokens
+Showcase component-specific overrides with mode switching (light/dark, compact/comfortable, etc.).
+
+### Code Export
+Generate production-ready code in multiple formats:
+- **CSS** - Custom properties with proper scoping
+- **SCSS** - Variables and comprehensive maps
+- **JavaScript** - Clean object structures
+- **Tailwind** - Ready-to-paste theme extensions
+
+---
+
+## 🎯 Advanced Usage
+
+### Custom Components
+
+Use standalone components to build custom documentation layouts:
 
 ```tsx
-import { Colors, Spacing, Radius, Sizes } from '@nibin-org/tokens';
+import { Colors, Spacing, Radius, Typography } from '@nibin-org/tokens';
+import tokens from './tokens.json';
 
-function CustomDocs() {
+export default function CustomDocs() {
   return (
-    <div>
+    <div className="design-system">
+      <h1>Our Color Palette</h1>
       <Colors tokens={tokens} title="Brand Colors" />
+      
+      <h1>Spacing System</h1>
       <Spacing tokens={tokens} title="Layout Spacing" />
+      
+      <h1>Border Radius</h1>
       <Radius tokens={tokens} title="Corner Styles" />
     </div>
   );
 }
 ```
 
+### Configuration
+
+Customize the appearance and behavior:
+
+```tsx
+<TokenDocumentation 
+  tokens={tokens}
+  title="Acme Design System"
+  subtitle="v2.0.0"
+  darkMode={true}
+  onTokenClick={(token) => console.log('Token clicked:', token)}
+/>
+```
+
 ---
 
-## 🏗️ Mastering Tokens
+## 📖 Token Structure Guide
 
-`@nibin-org/tokens` is designed to work seamlessly with [Figma Tokens Studio](https://tokens.studio/) (W3C Design Token format). 
+For the best experience, organize your tokens using our **recommended 3-layer architecture**:
 
-### 1. The Three-Layer Architecture
-
-For the best experience, structure your tokens into these three categories. This allows our documentation engine to provide specialized visualizations (like color families and component tables).
-
-| Layer | Purpose | Formatting Pattern |
-|-------|---------|------------------|
-| **Foundation** | Base values (colors, spacing, sizes) | `Foundation/Value` > `base` |
-| **Semantic** | Intent-based tokens (fill-primary, text-danger) | `Semantic/Value` |
-| **Components**| Component-specific tokens (button, input) | `Components/Mode 1` (or any name starting with `Components/`) |
-
-### 2. Supported Token Types
-
-We provide specialized visualizations for:
-- `color`: Interactive cards with Hex, RGB, and Contrast info.
-- `dimension` / `spacing` / `sizing`: Visual scale bars and pixel values.
-- `borderRadius`: Interactive corner previews.
-- `typography` (Coming Soon): Font family and style previews.
-
-### 3. Smart Aliasing
-
-We support the `{category.item.value}` syntax for token aliasing. Our **Export Engine** automatically resolves these for you:
+### 🏗️ Layer 1: Foundation
+Raw primitive values that form the foundation of your design system.
 
 ```json
-// tokens.json
 {
   "Foundation/Value": {
     "base": {
-      "blue": { "50": { "value": "#3b82f6", "type": "color" } }
-    }
-  },
-  "Semantic/Value": {
-    "fill": {
-      "primary": { "value": "{base.blue.50}", "type": "color" } 
+      "blue": { "500": { "value": "#3B82F6", "type": "color" } }
     }
   }
 }
 ```
 
----
+### 🎨 Layer 2: Semantic  
+Intent-based tokens that define how primitives should be used.
 
-## 🔎 Advanced Documentation
+```json
+{
+  "Semantic/Value": {
+    "fill": {
+      "primary": { "value": "{base.blue.500}", "type": "color" }
+    }
+  }
+}
+```
 
-### Global Search
-Access the global search anywhere with **`Cmd+K`** (Mac) or **`Ctrl+K`** (Windows).
-- Fuzzy matching finds tokens by name, hex value, or CSS variable.
-- Keyboard navigation (Arrows + Enter) for a high-speed workflow.
+### 🧩 Layer 3: Components
+Component-specific overrides and variations.
 
-### Code Export
-Generate production-ready code in seconds:
-- **CSS**: Standard CSS variables with proper headers.
-- **SCSS**: Linked variables and a comprehensive `$tokens` map.
-- **Tailwind**: A ready-to-paste `theme.extend` object.
-- **JavaScript**: Clean object structures for runtime use.
+```json
+{
+  "Components/Mode 1": {
+    "button": {
+      "bg": { "value": "{Semantic.fill.primary}", "type": "color" }
+    }
+  }
+}
+```
+
+> **Need detailed setup instructions?** Check out our **[Figma Token Workflow Guide](./GUIDE.md)** for step-by-step instructions with screenshots.
 
 ---
 
@@ -136,33 +175,113 @@ Generate production-ready code in seconds:
 
 ### `<TokenDocumentation />`
 
+Main component that renders the complete token documentation interface.
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `tokens` | `FigmaTokens` | **Required** | The JSON object exported from Tokens Studio. |
-| `title` | `string` | `"Design Tokens"` | The main title in the header. |
-| `subtitle` | `string` | `"View and copy design tokens"` | The subtitle/version text. |
-| `onTokenClick` | `(token) => void` | `null` | Callback for custom token interaction logic. |
-| `darkMode` | `boolean` | `false` | Initial theme state. |
+| `tokens` | `FigmaTokens` | **Required** | Design tokens object (W3C format) |
+| `title` | `string` | `"Design Tokens"` | Main header title |
+| `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
+| `darkMode` | `boolean` | `false` | Initial theme state |
+| `onTokenClick` | `(token) => void` | `null` | Callback when token is clicked |
+
+### Standalone Components
+
+Each component accepts `tokens` and optional `title` prop:
+
+- `<Colors tokens={tokens} />` - Color palette visualization
+- `<Spacing tokens={tokens} />` - Spacing scale display
+- `<Sizes tokens={tokens} />` - Size scale display  
+- `<Radius tokens={tokens} />` - Border radius previews
+- `<Typography tokens={tokens} />` - Font family and style display
 
 ---
 
-## 💻 Development
+## 🔍 Features Deep Dive
+
+### Global Search (`Cmd+K`)
+- **Fuzzy matching** - Find tokens by partial names
+- **Multi-field search** - Search by name, value, or hex code
+- **Keyboard navigation** - Arrow keys + Enter for speed
+- **Instant results** - No lag, even with 1000+ tokens
+
+### Code Export
+Click the export button to generate:
+- **CSS Variables** - `--token-name: value;`
+- **SCSS Variables** - `$token-name: value;`
+- **JavaScript Object** - `{ tokenName: 'value' }`
+- **Tailwind Config** - `theme.extend.colors`
+
+All exports include proper formatting, comments, and alias resolution.
+
+### Alias Resolution
+Automatically resolves token references in formats:
+- `{category.item.value}` (Figma Token Studio)
+- `$ref` (W3C DTCG)
+- Nested references (recursive resolution)
+
+---
+
+## 🔗 Resources
+
+- **[Live Demo](https://nibin-org.github.io/tokens/)** - Try it out with sample tokens
+- **[Figma Setup Guide](./GUIDE.md)** - Complete workflow with screenshots
+- **[GitHub Repository](https://github.com/nibin-org/tokens)** - Source code and examples
+- **[Issue Tracker](https://github.com/nibin-org/tokens/issues)** - Report bugs or request features
+
+---
+
+## 💻 Local Development
+
+Want to contribute or customize?
 
 ```bash
 # Clone the repository
 git clone https://github.com/nibin-org/tokens.git
+cd tokens
 
-# Install and build the core package
+# Install dependencies and build
 npm install
 npm run build
 
-# Run the local demo playground
+# Run the demo playground
 cd demo
 npm install
 npm run dev
 ```
 
+The demo will be available at `http://localhost:5173`
+
+---
+
+## 📝 Supported Token Types
+
+| Type | Visualization | Features |
+|------|--------------|----------|
+| `color` | Color swatch cards | Hex, RGB, HSL, Contrast checker |
+| `dimension` / `spacing` | Visual scale bars | Pixel/rem values, usage examples |
+| `sizing` | Size previews | Width/height visualization |
+| `borderRadius` | Corner previews | Interactive radius display |
+| `typography` | Font previews | Family, weight, size display |
+
+*More types coming soon!*
+
+---
+
+## 🤝 Contributing
+
+We love contributions! Whether it's:
+- 🐛 Bug fixes
+- ✨ New features
+- 📖 Documentation improvements
+- 🎨 UI enhancements
+
+Check out our [contributing guidelines](./CONTRIBUTING.md) to get started.
+
 ---
 
 ## 📄 License
+
 MIT © [nibin-org](https://github.com/nibin-org)
+
+**Made with ❤️ for designers and developers**
