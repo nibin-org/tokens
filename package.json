@@ -1,6 +1,6 @@
 {
   "name": "@nibin-org/tokens",
-  "version": "1.13.3",
+  "version": "1.13.4",
   "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -68,7 +68,10 @@
     "spacing-scale",
     "tailwind-tokens"
   ],
-  "author": "nibinlab99-dev",
+  "author": {
+    "name": "Nibin Kurian",
+    "url": "https://www.linkedin.com/in/nibin-kurian"
+  },
   "license": "MIT",
   "peerDependencies": {
     "react": ">=18.0.0",

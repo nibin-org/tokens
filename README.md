@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![npm version](https://img.shields.io/badge/version-1.13.3-5b47fb?style=for-the-badge&colorA=000000)
+![npm version](https://img.shields.io/badge/version-1.13.4-5b47fb?style=for-the-badge&colorA=000000)
 ![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
@@ -283,5 +283,14 @@ Check out our [contributing guidelines](./CONTRIBUTING.md) to get started.
 ## 📄 License
 
 MIT © [nibin-org](https://github.com/nibin-org)
+
+---
+
+## 👤 Author
+
+**Nibin Kurian**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/nibin-kurian)
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nibin-org)
 
 **Made with ❤️ for designers and developers**
