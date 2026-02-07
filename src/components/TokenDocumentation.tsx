@@ -7,7 +7,8 @@ import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
 import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
-import { PlaygroundTab } from './PlaygroundTab';
+import { ResetModal } from './ResetModal';
+import { PlaygroundTab, type PlaygroundConfig } from './PlaygroundTab';
 import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils/core';
 
 type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
@@ -36,6 +37,82 @@ export function TokenDocumentation({
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
+    const [resetModalOpen, setResetModalOpen] = useState(false);
+
+    // Default configuration
+    const defaultPlaygroundConfig: PlaygroundConfig = {
+        backgroundColor: 'fill-blue',
+        textColor: 'text-white',
+        borderColor: 'stroke-blue',
+        borderRadius: 'radius-sm',
+        paddingX: 'space-md',
+        paddingY: 'space-sm',
+        fontSize: 'font-size-md',
+        lineHeight: 'line-height-md',
+        hoverBackgroundColor: 'fill-blue-dark',
+        hoverTextColor: 'text-white',
+        hoverBorderColor: 'stroke-blue-dark',
+        // content
+        buttonText: 'Button Preview',
+        isFullWidth: false,
+        showIcon: false,
+        // active state
+        activeBackgroundColor: 'fill-blue-darker',
+        activeTextColor: 'text-white',
+        activeBorderColor: 'stroke-blue-darker',
+    };
+
+    // Playground state - initialize from localStorage directly (lazy initializer)
+    const [playgroundConfig, setPlaygroundConfig] = useState<PlaygroundConfig>(() => {
+        if (typeof window !== 'undefined') {
+            const savedConfig = localStorage.getItem('ftd-playground-config');
+            if (savedConfig) {
+                try {
+                    const parsed = JSON.parse(savedConfig);
+                    // Migration: if old data has 'padding', split into paddingX and paddingY
+                    if (parsed.padding && !parsed.paddingX) {
+                        return {
+                            ...parsed,
+                            paddingX: parsed.padding,
+                            paddingY: parsed.padding,
+                            padding: undefined, // Remove old property
+                        };
+                    }
+
+                    // Migration: Ensure hover properties exist
+                    return {
+                        ...defaultPlaygroundConfig, // Use defaults as base
+                        ...parsed, // Overwrite with saved values
+                    };
+                } catch (e) {
+                    // Invalid JSON, use defaults
+                }
+            }
+        }
+        return defaultPlaygroundConfig;
+    });
+
+    const resetPlaygroundConfig = () => {
+        setResetModalOpen(true);
+    };
+
+    const confirmReset = () => {
+        setPlaygroundConfig(defaultPlaygroundConfig);
+        if (typeof window !== 'undefined') {
+            // We want to clear the specific key but keep others if we add more
+            localStorage.removeItem('ftd-playground-config');
+        }
+    };
+
+    const [playgroundActiveTab, setPlaygroundActiveTab] = useState<'css' | 'scss' | 'tailwind'>(() => {
+        if (typeof window !== 'undefined') {
+            const savedTab = localStorage.getItem('ftd-playground-active-tab');
+            if (savedTab && (savedTab === 'css' || savedTab === 'scss' || savedTab === 'tailwind')) {
+                return savedTab;
+            }
+        }
+        return 'css';
+    });
 
     // Initial theme restoration
     useEffect(() => {
@@ -51,6 +128,15 @@ export function TokenDocumentation({
             return next;
         });
     };
+
+    // Save playground state to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('ftd-playground-config', JSON.stringify(playgroundConfig));
+    }, [playgroundConfig]);
+
+    useEffect(() => {
+        localStorage.setItem('ftd-playground-active-tab', playgroundActiveTab);
+    }, [playgroundActiveTab]);
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
@@ -381,6 +467,7 @@ export function TokenDocumentation({
                     <nav className="ftd-tabs" aria-label="Documentation types">
                         {availableTabs.map((tab) => (
                             <button
+                                type="button"
                                 key={tab.id}
                                 className={`ftd-tab ${activeTab === tab.id ? 'active' : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
@@ -421,6 +508,11 @@ export function TokenDocumentation({
                     <PlaygroundTab
                         tokens={tokens}
                         tokenMap={tokenMap}
+                        config={playgroundConfig}
+                        setConfig={setPlaygroundConfig}
+                        activeTab={playgroundActiveTab}
+                        setActiveTab={setPlaygroundActiveTab}
+                        onReset={resetPlaygroundConfig}
                     />
                 )}
             </div>
@@ -440,6 +532,13 @@ export function TokenDocumentation({
                 isOpen={exportOpen}
                 onClose={() => setExportOpen(false)}
                 tokens={tokens}
+            />
+
+            {/* Reset Modal */}
+            <ResetModal
+                isOpen={resetModalOpen}
+                onClose={() => setResetModalOpen(false)}
+                onConfirm={confirmReset}
             />
         </div>
     );

@@ -5,9 +5,36 @@ import { ButtonPlayground } from './playground/ButtonPlayground';
 interface PlaygroundTabProps {
     tokens: FigmaTokens;
     tokenMap: Record<string, string>;
+    config: PlaygroundConfig;
+    setConfig: React.Dispatch<React.SetStateAction<PlaygroundConfig>>;
+    activeTab: 'css' | 'scss' | 'tailwind';
+    setActiveTab: React.Dispatch<React.SetStateAction<'css' | 'scss' | 'tailwind'>>;
+    onReset: () => void;
 }
 
-export function PlaygroundTab({ tokens, tokenMap }: PlaygroundTabProps) {
+export type PlaygroundConfig = {
+    backgroundColor: string;
+    textColor: string;
+    borderColor: string;
+    borderRadius: string;
+    paddingX: string;
+    paddingY: string;
+    fontSize: string;
+    lineHeight: string;
+    hoverBackgroundColor: string;
+    hoverTextColor: string;
+    hoverBorderColor: string;
+    // content
+    buttonText: string;
+    isFullWidth: boolean;
+    showIcon: boolean;
+    // active state
+    activeBackgroundColor: string;
+    activeTextColor: string;
+    activeBorderColor: string;
+};
+
+export function PlaygroundTab({ tokens, tokenMap, config, setConfig, activeTab, setActiveTab, onReset }: PlaygroundTabProps) {
     const [activeComponent, setActiveComponent] = useState('button');
 
     const components = [
@@ -22,6 +49,7 @@ export function PlaygroundTab({ tokens, tokenMap }: PlaygroundTabProps) {
                 <div className="ftd-playground-tabs">
                     {components.map(comp => (
                         <button
+                            type="button"
                             key={comp.id}
                             className={`ftd-playground-tab-btn ${activeComponent === comp.id ? 'active' : ''}`}
                             onClick={() => setActiveComponent(comp.id)}
@@ -34,7 +62,15 @@ export function PlaygroundTab({ tokens, tokenMap }: PlaygroundTabProps) {
 
             <div className="ftd-playground-content">
                 {activeComponent === 'button' && (
-                    <ButtonPlayground tokens={tokens} tokenMap={tokenMap} />
+                    <ButtonPlayground
+                        tokens={tokens}
+                        tokenMap={tokenMap}
+                        config={config}
+                        setConfig={setConfig}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        onReset={onReset}
+                    />
                 )}
             </div>
         </div>
