@@ -31,10 +31,10 @@ export function ResetModal({ isOpen, onClose, onConfirm }: ResetModalProps) {
 
     return (
         <div className="ftd-export-modal" onClick={handleBackdropClick}>
-            <div className="ftd-export-container">
+            <div className="ftd-export-container mw-600">
                 <div className="ftd-export-header">
                     <div className="ftd-export-title-group">
-                        <h2 className="ftd-export-title" style={{ color: 'var(--ftd-error, #ef4444)' }}>Reset Playground?</h2>
+                        <h2 className="ftd-export-title">Reset Playground?</h2>
                     </div>
                     <button className="ftd-export-close" onClick={onClose}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

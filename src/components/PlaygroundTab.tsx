@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { FigmaTokens } from '../types';
 import { ButtonPlayground } from './playground/ButtonPlayground';
+import { PlaygroundToolbar } from './playground/PlaygroundToolbar';
 
 interface PlaygroundTabProps {
     tokens: FigmaTokens;
@@ -32,6 +33,8 @@ export type PlaygroundConfig = {
     activeBackgroundColor: string;
     activeTextColor: string;
     activeBorderColor: string;
+    // custom class
+    className: string;
 };
 
 export function PlaygroundTab({ tokens, tokenMap, config, setConfig, activeTab, setActiveTab, onReset }: PlaygroundTabProps) {
@@ -44,21 +47,10 @@ export function PlaygroundTab({ tokens, tokenMap, config, setConfig, activeTab, 
 
     return (
         <div className="ftd-playground-container">
-            <div className="ftd-playground-toolbar">
-                <span className="ftd-playground-label">Component:</span>
-                <div className="ftd-playground-tabs">
-                    {components.map(comp => (
-                        <button
-                            type="button"
-                            key={comp.id}
-                            className={`ftd-playground-tab-btn ${activeComponent === comp.id ? 'active' : ''}`}
-                            onClick={() => setActiveComponent(comp.id)}
-                        >
-                            {comp.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <PlaygroundToolbar
+                activeComponent={activeComponent}
+                onComponentChange={setActiveComponent}
+            />
 
             <div className="ftd-playground-content">
                 {activeComponent === 'button' && (

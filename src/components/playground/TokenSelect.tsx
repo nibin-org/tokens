@@ -56,7 +56,7 @@ export const TokenSelect = ({ label, value, tokens, tokenMap = {}, onChange, typ
                                 <span>{selectedToken.name}</span>
                             </>
                         ) : (
-                            <span style={{ color: 'var(--ftd-text-muted)' }}>Select Token</span>
+                            <span className="ftd-text-muted">Select Token</span>
                         )}
                     </div>
                     <svg className="ftd-custom-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">

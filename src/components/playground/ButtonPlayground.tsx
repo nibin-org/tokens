@@ -124,15 +124,16 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
         const activeTextCss = getCssValue(config.activeTextColor, hoverTextCss);
         const activeBorderCss = getCssValue(config.activeBorderColor, hoverBorderCss);
 
-        const widthCss = config.isFullWidth ? 'width: 100%;' : '';
+        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.button';
+
         const iconCss = config.showIcon ? `
-.button-icon {
+${className}-icon {
   margin-right: 8px;
   width: 16px;
   height: 16px;
 }` : '';
 
-        return `.button {
+        return `${className} {
   background-color: ${bgCss};
   color: ${textCss};
   border: 1px solid ${borderCss};
@@ -147,13 +148,13 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
   cursor: pointer;${config.isFullWidth ? '\n  width: 100%;' : ''}
 }
 
-.button:hover {
+${className}:hover {
   background-color: ${hoverBgCss};
   color: ${hoverTextCss};
   border-color: ${hoverBorderCss};
 }
 
-.button:active {
+${className}:active {
   background-color: ${activeBgCss};
   color: ${activeTextCss};
   border-color: ${activeBorderCss};
@@ -180,15 +181,16 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
         const activeTextScss = getScssValue(config.activeTextColor, hoverTextScss);
         const activeBorderScss = getScssValue(config.activeBorderColor, hoverBorderScss);
 
-        const widthScss = config.isFullWidth ? 'width: 100%;' : '';
+        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.button';
+
         const iconScss = config.showIcon ? `
-  .button-icon {
+  ${className.replace('.', '&-')}icon {
     margin-right: 8px;
     width: 16px;
     height: 16px;
   }` : '';
 
-        return `.button {
+        return `${className} {
   background-color: ${bgScss};
   color: ${textScss};
   border: 1px solid ${borderScss};
@@ -240,15 +242,12 @@ ${iconScss}
             config.isFullWidth ? 'w-full' : ''
         ].filter(Boolean).join(' ');
 
-        const iconContent = config.showIcon ? `
-  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>` : '';
+        const cleanClassName = config.className ? config.className.replace('.', '') : 'button';
+        const content = config.showIcon
+            ? `\n  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />\n  </svg>\n  ${config.buttonText || 'Button'}\n`
+            : ` ${config.buttonText || 'Button'} `;
 
-        return `<button className="${classes}">
-${iconContent}
-  ${config.buttonText || 'Button'}
-</button>`;
+        return `<button className="${cleanClassName} ${classes}">${content}</button>`;
     }, [config]);
 
     const codeSnippet = useMemo(() => {
@@ -272,8 +271,8 @@ ${iconContent}
             <div className="ftd-playground-sidebar">
                 <h3 className="ftd-playground-title">Properties</h3>
 
-                <div className="ftd-playground-control-group" style={{ marginBottom: '16px' }}>
-                    <label className="ftd-playground-label" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: 'var(--ftd-text-secondary)' }}>
+                <div className="ftd-playground-control-group">
+                    <label className="ftd-playground-label">
                         Button Text
                     </label>
                     <input
@@ -281,35 +280,39 @@ ${iconContent}
                         value={config.buttonText}
                         onChange={(e) => updateConfig('buttonText', e.target.value)}
                         className="ftd-playground-input"
-                        style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--ftd-border)',
-                            background: 'var(--ftd-bg-subtle)',
-                            color: 'var(--ftd-text-main)',
-                            fontSize: '13px'
-                        }}
                     />
                 </div>
 
-                <div className="ftd-playground-control-row" style={{ marginBottom: '16px', display: 'flex', gap: '16px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--ftd-text-main)', cursor: 'pointer' }}>
+                <div className="ftd-playground-control-group">
+                    <label className="ftd-playground-label">
+                        Custom Class Name
+                    </label>
+                    <input
+                        type="text"
+                        value={config.className}
+                        onChange={(e) => updateConfig('className', e.target.value)}
+                        placeholder="e.g. button-custom"
+                        className="ftd-playground-input"
+                    />
+                </div>
+
+                <div className="ftd-playground-control-row">
+                    <label className="ftd-playground-checkbox-label">
                         <input
                             type="checkbox"
                             checked={config.isFullWidth}
                             onChange={(e) => updateConfig('isFullWidth', e.target.checked as any)}
-                            style={{ accentColor: 'var(--ftd-primary)' }}
+                            className="ftd-playground-checkbox"
                         />
                         Full Width
                     </label>
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--ftd-text-main)', cursor: 'pointer' }}>
+                    <label className="ftd-playground-checkbox-label">
                         <input
                             type="checkbox"
                             checked={config.showIcon}
                             onChange={(e) => updateConfig('showIcon', e.target.checked as any)}
-                            style={{ accentColor: 'var(--ftd-primary)' }}
+                            className="ftd-playground-checkbox"
                         />
                         Show Icon
                     </label>
@@ -384,7 +387,7 @@ ${iconContent}
                     onChange={(v) => updateConfig('lineHeight', v)}
                 />
 
-                <div className="ftd-playground-section-header" style={{ marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--ftd-text-main)' }}>
+                <div className="ftd-playground-section-header">
                     Hover State
                 </div>
 
@@ -415,7 +418,7 @@ ${iconContent}
                     onChange={(v) => updateConfig('hoverBorderColor', v)}
                 />
 
-                <div className="ftd-playground-section-header" style={{ marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--ftd-text-main)' }}>
+                <div className="ftd-playground-section-header">
                     Active State
                 </div>
 
@@ -513,7 +516,7 @@ ${iconContent}
                                 strokeWidth="2"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                style={{ marginRight: '8px' }}
+                                className="ftd-playground-preview-button-icon"
                             >
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
 import type { TokenDocumentationProps, FigmaTokens, NestedTokens, VariantTokens, DimensionGroup } from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
@@ -33,6 +33,7 @@ export function TokenDocumentation({
 }: TokenDocumentationProps) {
     // State
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
+    const [isMounted, setIsMounted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -60,6 +61,7 @@ export function TokenDocumentation({
         activeBackgroundColor: 'fill-blue-darker',
         activeTextColor: 'text-white',
         activeBorderColor: 'stroke-blue-darker',
+        className: 'button',
     };
 
     // Playground state - initialize from localStorage directly (lazy initializer)
@@ -92,6 +94,19 @@ export function TokenDocumentation({
         return defaultPlaygroundConfig;
     });
 
+    // Load saved states on mount (Client-side only)
+
+    useLayoutEffect(() => {
+        setIsMounted(true);
+        if (typeof window !== 'undefined') {
+            // Restore Active Tab
+            const savedTab = localStorage.getItem('ftd-active-tab');
+            if (savedTab && ['foundation', 'semantic', 'components', 'playground'].includes(savedTab)) {
+                setActiveTab(savedTab as TabType);
+            }
+        }
+    }, []);
+
     const resetPlaygroundConfig = () => {
         setResetModalOpen(true);
     };
@@ -99,7 +114,6 @@ export function TokenDocumentation({
     const confirmReset = () => {
         setPlaygroundConfig(defaultPlaygroundConfig);
         if (typeof window !== 'undefined') {
-            // We want to clear the specific key but keep others if we add more
             localStorage.removeItem('ftd-playground-config');
         }
     };
@@ -137,6 +151,13 @@ export function TokenDocumentation({
     useEffect(() => {
         localStorage.setItem('ftd-playground-active-tab', playgroundActiveTab);
     }, [playgroundActiveTab]);
+
+    // Save active tab state
+    useEffect(() => {
+        if (typeof window !== 'undefined' && isMounted) {
+            localStorage.setItem('ftd-active-tab', activeTab);
+        }
+    }, [activeTab, isMounted]);
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
@@ -332,94 +353,48 @@ export function TokenDocumentation({
         );
     };
 
-    const VariantCard = ({
-        variantName,
-        variantTokens,
-        dimensionGroups
-    }: {
-        variantName: string;
-        variantTokens: VariantTokens;
-        dimensionGroups: Record<string, DimensionGroup>;
-    }) => {
-        const states = ['default', 'hover', 'active', 'disabled', 'focus'];
-        const properties = ['fill', 'bg', 'background', 'stroke', 'border', 'text', 'foreground', 'color'];
-
-        const getColorForState = (propGroup: string[], state: string) => {
-            const searchPatterns = state === 'default'
-                ? propGroup
-                : propGroup.map(p => `${p}-${state}`).concat(propGroup.map(p => `${p}${state}`));
-            return getResolvedColor(variantTokens, searchPatterns);
-        };
-
-        // Preview Logic
-        const fill = getColorForState(['fill', 'bg', 'background'], 'default')?.resolved || 'var(--ftd-bg-subtle)';
-        const stroke = getColorForState(['stroke', 'border'], 'default')?.resolved || 'transparent';
-        const text = getColorForState(['text', 'foreground', 'color'], 'default')?.resolved || 'var(--ftd-text-main)';
-
-        const radiusToken = dimensionGroups['radius']?.md || dimensionGroups['borderRadius']?.md || Object.values(dimensionGroups)[0]?.md;
-        const radius = radiusToken ? resolveTokenValue(radiusToken.value, tokenMap) : '8px';
-
-        return (
-            <div className="ftd-variant-card">
-                <div className="ftd-variant-header">
-                    <span className="ftd-variant-name">{variantName}</span>
-                </div>
-
-                <div className="ftd-variant-body">
-                    <div className="ftd-variant-preview">
-                        <button
-                            className="ftd-variant-button"
-                            style={{
-                                backgroundColor: fill,
-                                color: text,
-                                border: stroke !== 'transparent' ? `1.5px solid ${stroke}` : 'none',
-                                borderRadius: radius,
-                                padding: '10px 20px',
-                                fontWeight: 600,
-                                cursor: 'default'
-                            }}
-                        >
-                            Preview
-                        </button>
+    // Skeleton Component
+    const SkeletonLoader = () => (
+        <div className="ftd-container" data-theme={isDarkMode ? 'dark' : 'light'}>
+            <div className="ftd-navbar-sticky">
+                <header className="ftd-header">
+                    <div className="ftd-title-wrapper">
+                        <div className="ftd-skeleton-pulse ftd-skeleton-title" />
+                        <div className="ftd-skeleton-pulse ftd-skeleton-subtitle" />
                     </div>
-
-                    <div className="ftd-variant-table-wrapper">
-                        <table className="ftd-variant-table">
-                            <thead>
-                                <tr>
-                                    <th>State</th>
-                                    <th>Fill</th>
-                                    <th>Border</th>
-                                    <th>Text</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {states.map(state => {
-                                    const fillData = getColorForState(['fill', 'bg', 'background'], state);
-                                    const strokeData = getColorForState(['stroke', 'border'], state);
-                                    const textData = getColorForState(['text', 'foreground', 'color'], state);
-
-                                    if (state !== 'default' && !fillData && !strokeData && !textData) return null;
-
-                                    return (
-                                        <tr key={state}>
-                                            <td className="ftd-cell-label">{state}</td>
-                                            <td><TableSwatch data={fillData} /></td>
-                                            <td><TableSwatch data={strokeData} /></td>
-                                            <td><TableSwatch data={textData} /></td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div className="ftd-header-actions">
+                        <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-export" />
+                        <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-search" />
+                        <div className="ftd-skeleton-pulse ftd-skeleton-action-pulse ftd-skeleton-theme" />
                     </div>
+                </header>
+                <div className="ftd-skeleton-tabs">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="ftd-skeleton-pulse ftd-skeleton-tab" />
+                    ))}
                 </div>
             </div>
-        );
-    };
+            <div className="ftd-content">
+                <div className="ftd-skeleton-content">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="ftd-skeleton-pulse ftd-skeleton-card" />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 
+    if (!isMounted) {
+        return <SkeletonLoader />;
+    }
+
+    // Return statement using isMounted for flash prevention
     return (
-        <div className="ftd-container" data-theme={isDarkMode ? 'dark' : 'light'}>
+        <div
+            className={`ftd-container ftd-container-animated`}
+            data-theme={isDarkMode ? 'dark' : 'light'}
+            style={{ opacity: isMounted ? 1 : 0 }}
+        >
             {copiedToken && <div className="ftd-copied-toast">Copied: {copiedToken}</div>}
 
             <div className="ftd-navbar-sticky">
@@ -431,7 +406,7 @@ export function TokenDocumentation({
                     <div className="ftd-header-actions">
                         <button className="ftd-export-button-nav" onClick={() => setExportOpen(true)} type="button">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
@@ -517,7 +492,6 @@ export function TokenDocumentation({
                 )}
             </div>
 
-            {/* Search Modal */}
             <SearchModal
                 isOpen={searchOpen}
                 onClose={() => setSearchOpen(false)}
@@ -527,14 +501,12 @@ export function TokenDocumentation({
                 onScrollToToken={handleScrollToToken}
             />
 
-            {/* Export Modal */}
             <ExportModal
                 isOpen={exportOpen}
                 onClose={() => setExportOpen(false)}
                 tokens={tokens}
             />
 
-            {/* Reset Modal */}
             <ResetModal
                 isOpen={resetModalOpen}
                 onClose={() => setResetModalOpen(false)}
