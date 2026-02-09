@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![npm version](https://img.shields.io/badge/version-1.13.4-5b47fb?style=for-the-badge&colorA=000000)
+![npm version](https://img.shields.io/badge/version-1.14.0-5b47fb?style=for-the-badge&colorA=000000)
 ![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
@@ -21,8 +21,9 @@ Visualize colors, spacing, typography, and more with zero configuration.
 Most design token documentation is boring, static, and hard to navigate. **@nibin-org/tokens** gives you:
 
 - 🎨 **Beautiful Visuals** - Interactive color palettes, spacing scales, and component previews
+- 🎮 **Interactive Playground** - Live preview components with your tokens and custom class names
 - ⚡ **Instant Search** - Press `Cmd+K` to find any token instantly
-- 📤 **Code Export** - Generate CSS, SCSS, JavaScript, or Tailwind configs with one click
+- 📤 **Code Export** - Generate CSS, SCSS, JavaScript, or Tailwind configs with **premium syntax highlighting**
 - 🌙 **Dark Mode** - Seamless theme switching built-in
 - 🔗 **Smart Aliases** - Automatically resolves Figma Token Studio references
 - 📦 **Zero Dependencies** - Lightweight and fast
@@ -74,11 +75,17 @@ Document intent-based tokens (primary, danger, success) with their resolved valu
 Showcase component-specific overrides with mode switching (light/dark, compact/comfortable, etc.).
 
 ### Code Export
-Generate production-ready code in multiple formats:
-- **CSS** - Custom properties with proper scoping
-- **SCSS** - Variables and comprehensive maps
-- **JavaScript** - Clean object structures
-- **Tailwind** - Ready-to-paste theme extensions
+Generate production-ready code in multiple formats with **premium, high-contrast syntax highlighting**:
+- **CSS** - Custom properties with proper scoping and `:root` support
+- **SCSS** - Variables and comprehensive maps with color-coded keys
+- **JavaScript** - Clean object structures for technical projects
+- **Tailwind** - Ready-to-paste theme extensions in JS format
+
+### 🎮 Interactive Playground
+Test your tokens on real components before exporting. The playground includes:
+- **Live Preview** - See token changes instantly on interactive UI elements
+- **Custom Class Names** - Customize the output CSS/SCSS/Tailwind class names
+- **Premium Themes** - Differentiated syntax highlighting for every language (Sublime Sass, Official Tailwind, etc.)
 
 ---
 
