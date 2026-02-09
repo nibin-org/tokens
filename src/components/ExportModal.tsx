@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { FigmaTokens } from '../types';
 import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../utils/exportUtils';
 
+import { highlightCode } from '../utils/highlighter';
+
 interface ExportModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -119,8 +121,8 @@ export function ExportModal({ isOpen, onClose, tokens }: ExportModalProps) {
                                 Download
                             </button>
                         </div>
-                        <pre ref={codeRef} className="ftd-export-code">
-                            <code>{generatedCode}</code>
+                        <pre ref={codeRef} className={`ftd-export-code ftd-lang-${activeTab}`}>
+                            <code dangerouslySetInnerHTML={{ __html: highlightCode(generatedCode || '', activeTab === 'tailwind' ? 'js' : activeTab) }} />
                         </pre>
                     </div>
                 </div>

@@ -60,11 +60,11 @@ export function TokenDocumentation({
         // active state
         activeBackgroundColor: 'fill-blue-darker',
         activeTextColor: 'text-white',
-        activeBorderColor: 'stroke-blue-darker',
+        activeBorderColor: 'stroke-blue-dark',
         className: 'button',
     };
 
-    // Playground state - initialize from localStorage directly (lazy initializer)
+    // Playground state - initialize from localStorage and merge with defaults
     const [playgroundConfig, setPlaygroundConfig] = useState<PlaygroundConfig>(() => {
         if (typeof window !== 'undefined') {
             const savedConfig = localStorage.getItem('ftd-playground-config');
@@ -72,22 +72,22 @@ export function TokenDocumentation({
                 try {
                     const parsed = JSON.parse(savedConfig);
                     // Migration: if old data has 'padding', split into paddingX and paddingY
+                    const migrated = { ...parsed };
                     if (parsed.padding && !parsed.paddingX) {
-                        return {
-                            ...parsed,
-                            paddingX: parsed.padding,
-                            paddingY: parsed.padding,
-                            padding: undefined, // Remove old property
-                        };
+                        migrated.paddingX = parsed.padding;
+                        migrated.paddingY = parsed.padding;
+                        delete migrated.padding;
                     }
 
-                    // Migration: Ensure hover properties exist
-                    return {
-                        ...defaultPlaygroundConfig, // Use defaults as base
-                        ...parsed, // Overwrite with saved values
-                    };
+                    // Fix typo in activeBorderColor migration
+                    if (migrated.activeBorderColor === 'stroke-blue-darker') {
+                        migrated.activeBorderColor = 'stroke-blue-dark';
+                    }
+
+                    // Merge with defaults to ensure new fields are always present
+                    return { ...defaultPlaygroundConfig, ...migrated };
                 } catch (e) {
-                    // Invalid JSON, use defaults
+                    return defaultPlaygroundConfig;
                 }
             }
         }

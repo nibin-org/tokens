@@ -171,6 +171,61 @@ body {
   color: var(--ftd-text-main);
 }
 
+.ftd-playground-copy-btn:hover {
+  background: var(--ftd-bg-hover);
+  color: var(--ftd-primary);
+  border-color: var(--ftd-primary);
+}
+
+/* Syntax Highlighting Base */
+.ftd-sh-punctuation { color: #64748b; }
+.ftd-sh-value { color: #059669; }    /* Emerald Green */
+.ftd-sh-string { color: #059669; }   /* Emerald Green */
+.ftd-sh-comment { color: #94a3b8; font-style: italic; }
+
+/* SCSS Theme (Sublime Sass Style) */
+.ftd-lang-scss .ftd-sh-selector { color: #6366f1; } /* Indigo Selectors */
+.ftd-lang-scss .ftd-sh-property { color: #db2777; } /* Pink Properties */
+.ftd-lang-scss .ftd-sh-value { color: #0d9488; }    /* Teal Values */
+
+/* CSS Theme (Premium Onyx Style) */
+.ftd-lang-css .ftd-sh-selector { color: #8b5cf6; } /* Purple Selectors */
+.ftd-lang-css .ftd-sh-property { color: #3b82f6; } /* Blue Properties */
+.ftd-lang-css .ftd-sh-value { color: #f59e0b; }    /* Amber Values */
+
+/* Tailwind/JSX Theme (Official Tailwind Style) */
+.ftd-lang-tailwind .ftd-sh-tag { color: #db2777; }  /* Pink Tags */
+.ftd-lang-tailwind .ftd-sh-attr { color: #64748b; } /* Slate Attributes */
+.ftd-lang-tailwind .ftd-sh-value { color: #0ea5e9; } /* Blue Utilities */
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .ftd-sh-string { color: #34d399; }
+[data-theme="dark"] .ftd-sh-comment { color: #475569; }
+
+[data-theme="dark"] .ftd-lang-scss .ftd-sh-selector { color: #818cf8; }
+[data-theme="dark"] .ftd-lang-scss .ftd-sh-property { color: #f472b6; }
+[data-theme="dark"] .ftd-lang-scss .ftd-sh-value { color: #2dd4bf; }
+
+[data-theme="dark"] .ftd-lang-css .ftd-sh-selector { color: #a78bfa; }
+[data-theme="dark"] .ftd-lang-css .ftd-sh-property { color: #60a5fa; }
+[data-theme="dark"] .ftd-lang-css .ftd-sh-value { color: #fbbf24; }
+
+[data-theme="dark"] .ftd-lang-tailwind .ftd-sh-tag { color: #f472b6; }
+[data-theme="dark"] .ftd-lang-tailwind .ftd-sh-attr { color: #f8fafc; }
+[data-theme="dark"] .ftd-lang-tailwind .ftd-sh-value { color: #38bdf8; }
+
+/* JS Theme */
+.ftd-lang-js .ftd-sh-keyword { color: #db2777; font-weight: 500; }
+.ftd-lang-js .ftd-sh-property { color: #3b82f6; }
+.ftd-lang-js .ftd-sh-value { color: #059669; }
+.ftd-lang-js .ftd-sh-string { color: #059669; }
+
+/* JS Dark Mode */
+[data-theme="dark"] .ftd-lang-js .ftd-sh-keyword { color: #f472b6; }
+[data-theme="dark"] .ftd-lang-js .ftd-sh-property { color: #60a5fa; }
+[data-theme="dark"] .ftd-lang-js .ftd-sh-value { color: #34d399; }
+[data-theme="dark"] .ftd-lang-js .ftd-sh-string { color: #34d399; }
+
 .ftd-tab.active {
   background: var(--ftd-primary-fade);
   color: var(--ftd-primary);

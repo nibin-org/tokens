@@ -4,6 +4,7 @@ import { getFlattenedTokens, ExportableToken } from '../../utils/exportUtils';
 import { resolveTokenValue } from '../../utils/core';
 import { copyToClipboard } from '../../utils/ui';
 import { TokenSelect } from './TokenSelect';
+import { highlightCode } from '../../utils/highlighter';
 import type { PlaygroundConfig } from '../PlaygroundTab';
 
 interface ButtonPlaygroundProps {
@@ -47,7 +48,7 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
     const lineHeightTokens = useMemo(() => allTokens.filter(t => t.name.includes('line-height')), [allTokens]);
 
     // Update config helper
-    const updateConfig = (key: keyof typeof config, value: string) => {
+    const updateConfig = (key: keyof typeof config, value: string | boolean) => {
         setConfig(prev => ({ ...prev, [key]: value }));
     };
 
@@ -250,6 +251,12 @@ ${iconScss}
         return `<button className="${cleanClassName} ${classes}">${content}</button>`;
     }, [config]);
 
+
+    const highlightedCode = useMemo(() => {
+        const rawCode = activeTab === 'css' ? cssCode : activeTab === 'scss' ? scssCode : tailwindCode;
+        return highlightCode(rawCode, activeTab);
+    }, [cssCode, scssCode, tailwindCode, activeTab]);
+
     const codeSnippet = useMemo(() => {
         if (activeTab === 'css') {
             return cssCode;
@@ -261,7 +268,7 @@ ${iconScss}
     }, [activeTab, cssCode, scssCode, tailwindCode]);
 
     const handleCopy = () => {
-        copyToClipboard(codeSnippet);
+        navigator.clipboard.writeText(codeSnippet);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -301,7 +308,7 @@ ${iconScss}
                         <input
                             type="checkbox"
                             checked={config.isFullWidth}
-                            onChange={(e) => updateConfig('isFullWidth', e.target.checked as any)}
+                            onChange={(e) => updateConfig('isFullWidth', e.target.checked)}
                             className="ftd-playground-checkbox"
                         />
                         Full Width
@@ -311,17 +318,22 @@ ${iconScss}
                         <input
                             type="checkbox"
                             checked={config.showIcon}
-                            onChange={(e) => updateConfig('showIcon', e.target.checked as any)}
+                            onChange={(e) => updateConfig('showIcon', e.target.checked)}
                             className="ftd-playground-checkbox"
                         />
                         Show Icon
                     </label>
                 </div>
 
+                <div className="ftd-playground-section-header">
+                    <span>Colors</span>
+                    <div className="ftd-playground-header-line"></div>
+                </div>
+
                 <TokenSelect
                     label="Background Color"
                     value={config.backgroundColor}
-                    tokens={fillTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('fill-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('backgroundColor', v)}
@@ -330,7 +342,7 @@ ${iconScss}
                 <TokenSelect
                     label="Text Color"
                     value={config.textColor}
-                    tokens={textTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('text-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('textColor', v)}
@@ -339,11 +351,16 @@ ${iconScss}
                 <TokenSelect
                     label="Border Color"
                     value={config.borderColor}
-                    tokens={strokeTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('stroke-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('borderColor', v)}
                 />
+
+                <div className="ftd-playground-section-header">
+                    <span>Shape & Spacing</span>
+                    <div className="ftd-playground-header-line"></div>
+                </div>
 
                 <TokenSelect
                     label="Border Radius"
@@ -358,23 +375,28 @@ ${iconScss}
                     <TokenSelect
                         label="Padding X"
                         value={config.paddingX}
-                        tokens={spacingTokens}
+                        tokens={allTokens.filter(t => t.name.includes('space'))}
                         tokenMap={tokenMap}
                         onChange={(v) => updateConfig('paddingX', v)}
                     />
                     <TokenSelect
                         label="Padding Y"
                         value={config.paddingY}
-                        tokens={spacingTokens}
+                        tokens={allTokens.filter(t => t.name.includes('space'))}
                         tokenMap={tokenMap}
                         onChange={(v) => updateConfig('paddingY', v)}
                     />
                 </div>
 
+                <div className="ftd-playground-section-header">
+                    <span>Typography</span>
+                    <div className="ftd-playground-header-line"></div>
+                </div>
+
                 <TokenSelect
                     label="Font Size"
                     value={config.fontSize}
-                    tokens={fontSizeTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('font-size-'))}
                     tokenMap={tokenMap}
                     onChange={(v) => updateConfig('fontSize', v)}
                 />
@@ -382,19 +404,20 @@ ${iconScss}
                 <TokenSelect
                     label="Line Height"
                     value={config.lineHeight}
-                    tokens={lineHeightTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('line-height-'))}
                     tokenMap={tokenMap}
                     onChange={(v) => updateConfig('lineHeight', v)}
                 />
 
-                <div className="ftd-playground-section-header">
-                    Hover State
+                <div className="ftd-playground-section-header" style={{ marginTop: '24px' }}>
+                    <span>Hover State</span>
+                    <div className="ftd-playground-header-line"></div>
                 </div>
 
                 <TokenSelect
                     label="Hover Background"
                     value={config.hoverBackgroundColor}
-                    tokens={fillTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('fill-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('hoverBackgroundColor', v)}
@@ -403,7 +426,7 @@ ${iconScss}
                 <TokenSelect
                     label="Hover Text Color"
                     value={config.hoverTextColor}
-                    tokens={textTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('text-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('hoverTextColor', v)}
@@ -412,20 +435,21 @@ ${iconScss}
                 <TokenSelect
                     label="Hover Border Color"
                     value={config.hoverBorderColor}
-                    tokens={strokeTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('stroke-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('hoverBorderColor', v)}
                 />
 
-                <div className="ftd-playground-section-header">
-                    Active State
+                <div className="ftd-playground-section-header" style={{ marginTop: '24px' }}>
+                    <span>Active State</span>
+                    <div className="ftd-playground-header-line"></div>
                 </div>
 
                 <TokenSelect
                     label="Active Background"
                     value={config.activeBackgroundColor}
-                    tokens={fillTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('fill-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('activeBackgroundColor', v)}
@@ -434,7 +458,7 @@ ${iconScss}
                 <TokenSelect
                     label="Active Text Color"
                     value={config.activeTextColor}
-                    tokens={textTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('text-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('activeTextColor', v)}
@@ -443,13 +467,13 @@ ${iconScss}
                 <TokenSelect
                     label="Active Border Color"
                     value={config.activeBorderColor}
-                    tokens={strokeTokens}
+                    tokens={allTokens.filter(t => t.name.startsWith('stroke-'))}
                     tokenMap={tokenMap}
                     type="color"
                     onChange={(v) => updateConfig('activeBorderColor', v)}
                 />
 
-                <div className="ftd-playground-actions">
+                <div style={{ marginTop: '32px' }}>
                     <button
                         type="button"
                         onClick={onReset}
@@ -558,8 +582,8 @@ ${iconScss}
                             {copied ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre>
-                        <code>{codeSnippet}</code>
+                    <pre className={`ftd-lang-${activeTab}`}>
+                        <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
                     </pre>
                 </div>
             </div>
