@@ -4,6 +4,11 @@ This guide explains how to set up your Figma design system to work perfectly wit
 
 ---
 
+## Prerequisites
+
+- **Tokens Studio for Figma** plugin installed
+- A GitHub repository to store your `tokens.json`
+
 ## 1. Organizing Your Tokens (The 3-Layer Method)
 
 For the best results, organize your tokens in **Tokens Studio** into these three distinct sets/files. This structure allows our documentation engine to generate specialized visualizations.
@@ -182,7 +187,7 @@ After creating or updating your tokens, push them to GitHub:
 2. Enter a commit message and select the branch
 
 ![Commit Dialog](./assets/13.png)
-*Push to GitHub dialog showing commit message field ("Token updation"), branch selection (main), and the "Push Changes" button*
+*Push to GitHub dialog showing commit message field ("Token update"), branch selection (main), and the "Push Changes" button*
 
 3. Click **Push Changes** and wait for the sync to complete
 
@@ -269,12 +274,14 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm install
+      - run: npm ci
       - run: npm run build
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
+
+> **Note:** In this repository, publishing is gated by commit messages that include `release:`. If you reuse the workflow here, make sure your release process follows that rule (or adjust it to your needs).
 
 This workflow will:
 - Trigger whenever `tokens.json` is pushed to the `main` branch

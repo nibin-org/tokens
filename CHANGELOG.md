@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-02-09
+
+### Added
+- **Responsive polish** 📱: Mobile header actions now stack cleanly with search on top and export/theme beneath.
+- **Scrollable export tabs**: Horizontal scroll enabled for export format tabs on small screens.
+- **Base colors grid**: Switched to a responsive grid (4 → 3 → 2 → 1 columns) to prevent overflow on mid‑width screens.
+
+### Changed
+- **WCAG contrast improvements** ✅: Updated light/dark text and primary colors for AA‑compliant readability while preserving the premium look.
+- **Mobile navbar background**: Sticky header becomes opaque on small screens to avoid content bleed-through.
+
+### Fixed
+- **Header icon alignment**: Normalized line-height and SVG alignment for export/search/theme buttons.
+- **Color pill wrapping**: CSS variable pills now truncate with ellipsis instead of wrapping to a new line.
+- **Sticky offsets**: Sidebar/top spacing now respects the computed sticky header height across breakpoints.
+
+### CI
+- **Node 20 only**: CI matrix aligned to Node 20 to match dependencies and runtime requirements.
+
+## [1.15.0] - 2026-02-09
+
+### Added
+- **Premium UI refresh** ✨: Glass surfaces, refined shadows, and polished cards across the entire experience.
+- **Icon system**: Replaced emoji icons with a consistent SVG icon set.
+- **Search enhancements** 🔎: Color previews in search results, stronger highlight states, and better keyboard navigation.
+- **Component tokens parity**: Component dimension cards now match the foundation UI with preview tiles and ordered sizing.
+- **Copy feedback**: Toast now shows a clear “Copied” badge and the value in `var(--token)` format when available.
+
+### Changed
+- **Build pipeline**: Removed CSS minifier dependency; postbuild now copies `styles.css` into `dist`.
+- **Test environment**: Switched to `happy-dom` for stable test runs.
+- **Demo upgrades**: Updated demo dependencies (Next.js + ESLint config) for security compliance.
+
+### Fixed
+- **Sticky sidebar**: Restored sticky behavior after layout changes.
+- **Scroll spy**: Deterministic scroll spy with proper offset handling for header height.
+- **Token focus**: Search navigation now reliably scrolls and highlights matching tokens.
+
+## [1.14.0] - 2026-02-07
+
+### Changed
+- **Maintenance release**: Internal housekeeping and minor UI consistency fixes.
+
 ## [1.13.2] - 2026-02-06
 
 ### Changed
