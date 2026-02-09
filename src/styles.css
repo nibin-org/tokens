@@ -536,7 +536,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 48px;
-  padding-top: 16px;
+  padding: 16px 0 200px 0;
 }
 
 @media (max-width: 1024px) {
