@@ -473,7 +473,7 @@ ${iconScss}
                     onChange={(v) => updateConfig('activeBorderColor', v)}
                 />
 
-                <div style={{ marginTop: '32px' }}>
+                <div>
                     <button
                         type="button"
                         onClick={onReset}

@@ -1,4 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
+import { createTokenMap, resolveTokenValue } from './core';
 
 export interface SearchableToken {
   id: string;
@@ -77,7 +78,7 @@ function fuzzyMatch(query: string, text: string): { score: number; matches: bool
 /**
  * Index foundation tokens
  */
-function indexFoundationTokens(baseTokens: NestedTokens): SearchableToken[] {
+function indexFoundationTokens(baseTokens: NestedTokens, tokenMap: Record<string, string>): SearchableToken[] {
   const tokens: SearchableToken[] = [];
   
   Object.entries(baseTokens).forEach(([familyName, family]) => {
@@ -89,14 +90,16 @@ function indexFoundationTokens(baseTokens: NestedTokens): SearchableToken[] {
           const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => familyName.toLowerCase().includes(k));
           const cssVar = isSpatial ? `--${familyName}-${tokenName}` : `--base-${familyName}-${tokenName}`;
           
+          const type = determineTokenType(familyName);
+          const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
           tokens.push({
             id: `foundation-${familyName}-${tokenName}`,
             name: `${familyName}-${tokenName}`,
             value,
             cssVariable: cssVar,
-            type: determineTokenType(familyName),
+            type,
             category: 'foundation',
-            preview: value,
+            preview,
           });
         }
       });
@@ -109,7 +112,7 @@ function indexFoundationTokens(baseTokens: NestedTokens): SearchableToken[] {
 /**
  * Index semantic tokens (fill, stroke, text)
  */
-function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>): SearchableToken[] {
+function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>, tokenMap: Record<string, string>): SearchableToken[] {
   const tokens: SearchableToken[] = [];
   
   ['fill', 'stroke', 'text'].forEach(category => {
@@ -128,7 +131,7 @@ function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>): Sear
           cssVariable: cssVar,
           type: 'color',
           category: 'semantic',
-          preview: value,
+          preview: resolveTokenValue(value, tokenMap),
         });
       }
     });
@@ -140,7 +143,7 @@ function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>): Sear
 /**
  * Index component tokens
  */
-function indexComponentTokens(components: Record<string, any>): SearchableToken[] {
+function indexComponentTokens(components: Record<string, any>, tokenMap: Record<string, string>): SearchableToken[] {
   const tokens: SearchableToken[] = [];
   
   Object.entries(components).forEach(([componentName, component]) => {
@@ -152,14 +155,16 @@ function indexComponentTokens(components: Record<string, any>): SearchableToken[
               const value = String(tokenValue.value);
               const cssVar = `--${componentName}-${dimensionName}-${variantName}`;
               
+              const type = determineTokenType(dimensionName);
+              const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
               tokens.push({
                 id: `component-${componentName}-${dimensionName}-${variantName}`,
                 name: `${componentName} ${dimensionName} ${variantName}`,
                 value,
                 cssVariable: cssVar,
-                type: determineTokenType(dimensionName),
+                type,
                 category: 'component',
-                preview: value,
+                preview,
               });
             }
           });
@@ -202,20 +207,21 @@ function determineTokenType(name: string): SearchableToken['type'] {
  */
 export function indexTokens(tokens: FigmaTokens): SearchableToken[] {
   const searchableTokens: SearchableToken[] = [];
+  const tokenMap = createTokenMap(tokens);
   
   // Index foundation tokens
   if (tokens['Foundation/Value']?.base) {
-    searchableTokens.push(...indexFoundationTokens(tokens['Foundation/Value'].base));
+    searchableTokens.push(...indexFoundationTokens(tokens['Foundation/Value'].base, tokenMap));
   }
   
   // Index semantic tokens
   if (tokens['Semantic/Value']) {
-    searchableTokens.push(...indexSemanticTokens(tokens['Semantic/Value']));
+    searchableTokens.push(...indexSemanticTokens(tokens['Semantic/Value'], tokenMap));
   }
   
   // Index component tokens
   if (tokens['Components/Mode 1']) {
-    searchableTokens.push(...indexComponentTokens(tokens['Components/Mode 1']));
+    searchableTokens.push(...indexComponentTokens(tokens['Components/Mode 1'], tokenMap));
   }
   
   return searchableTokens;

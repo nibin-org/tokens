@@ -9,7 +9,8 @@ import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
 import { ResetModal } from './ResetModal';
 import { PlaygroundTab, type PlaygroundConfig } from './PlaygroundTab';
-import { createTokenMap, resolveTokenValue, findAllTokens } from '../utils/core';
+import { createTokenMap, resolveTokenValue, findAllTokens, toCssVariable } from '../utils/core';
+import { Icon } from './Icon';
 
 type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
 
@@ -173,11 +174,18 @@ export function TokenDocumentation({
     }, []);
 
     // Handle scrolling to and highlighting a specific token
-    const handleScrollToToken = (tokenName: string, category: string) => {
-        // Wait a bit for tab content to render
-        setTimeout(() => {
+    const handleScrollToToken = (tokenName: string, category: string, cssVariable?: string) => {
+        const normalizeCssVar = (value?: string) => {
+            if (!value) return '';
+            let v = value.trim();
+            if (v.startsWith('var(') && v.endsWith(')')) v = v.slice(4, -1).trim();
+            return v;
+        };
+
+        const targetCssVar = normalizeCssVar(cssVariable);
+
+        const tryFindAndHighlight = (attempt: number) => {
             // Try to find the token element by data attribute or text content
-            // Look for elements that might contain the token name
             const possibleSelectors = [
                 `[data-token-name="${tokenName}"]`,
                 `[data-token="${tokenName}"]`,
@@ -188,6 +196,27 @@ export function TokenDocumentation({
             for (const selector of possibleSelectors) {
                 tokenElement = document.querySelector(selector);
                 if (tokenElement) break;
+            }
+
+            if (!tokenElement && targetCssVar) {
+                tokenElement = document.querySelector(`[data-token-css-var="${targetCssVar}"]`) as HTMLElement | null;
+            }
+
+            if (!tokenElement && targetCssVar) {
+                const cssVarNodes = document.querySelectorAll('.ftd-token-css-var, .ftd-shade-css-var');
+                for (const node of Array.from(cssVarNodes)) {
+                    const text = normalizeCssVar(node.textContent || '');
+                    if (!text) continue;
+                    if (text === targetCssVar) {
+                        const candidate = (node as HTMLElement).closest(
+                            '.ftd-color-shade, .ftd-token-card, .ftd-spacing-item, .ftd-size-item, .ftd-radius-item, .ftd-dimension-item, .ftd-display-card'
+                        ) as HTMLElement | null;
+                        if (candidate) {
+                            tokenElement = candidate;
+                            break;
+                        }
+                    }
+                }
             }
 
             // If not found by data attribute, try finding by text content
@@ -201,7 +230,76 @@ export function TokenDocumentation({
                 }
             }
 
+            if (!tokenElement && attempt < 15) {
+                setTimeout(() => tryFindAndHighlight(attempt + 1), 160);
+                return;
+            }
+
             if (tokenElement) {
+                const toRgb = (color: string): { r: number; g: number; b: number; a: number } | null => {
+                    const c = color.trim();
+                    if (c.startsWith('rgb')) {
+                        const match = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?/i);
+                        if (!match) return null;
+                        return {
+                            r: parseInt(match[1], 10),
+                            g: parseInt(match[2], 10),
+                            b: parseInt(match[3], 10),
+                            a: match[4] ? parseFloat(match[4]) : 1,
+                        };
+                    }
+                    if (c.startsWith('#')) {
+                        let hex = c.slice(1);
+                        if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+                        if (hex.length !== 6) return null;
+                        const r = parseInt(hex.slice(0, 2), 16);
+                        const g = parseInt(hex.slice(2, 4), 16);
+                        const b = parseInt(hex.slice(4, 6), 16);
+                        return { r, g, b, a: 1 };
+                    }
+                    return null;
+                };
+
+                const isTransparent = (color: string) =>
+                    color === 'transparent' || color === 'rgba(0, 0, 0, 0)' || color === 'rgba(0,0,0,0)';
+
+                const isUsable = (rgb: { r: number; g: number; b: number; a: number } | null) => {
+                    if (!rgb) return false;
+                    if (rgb.a < 0.1) return false;
+                    const luminance = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+                    return luminance < 0.92;
+                };
+
+                const getHighlightColor = (el: HTMLElement): { r: number; g: number; b: number; a: number } | null => {
+                    const swatch = el.querySelector(
+                        '.ftd-token-swatch, .ftd-token-preview, .ftd-color-family-swatch, .ftd-color-shade, .ftd-search-result-preview'
+                    ) as HTMLElement | null;
+                    if (swatch) {
+                        const swatchBg = getComputedStyle(swatch).backgroundColor;
+                        if (swatchBg && !isTransparent(swatchBg)) {
+                            const rgb = toRgb(swatchBg);
+                            if (isUsable(rgb)) return rgb;
+                        }
+                    }
+
+                    const bg = getComputedStyle(el).backgroundColor;
+                    if (bg && !isTransparent(bg)) {
+                        const rgb = toRgb(bg);
+                        if (isUsable(rgb)) return rgb;
+                    }
+
+                    const rootPrimary = getComputedStyle(document.documentElement).getPropertyValue('--ftd-primary').trim();
+                    const fallback = toRgb(rootPrimary);
+                    return fallback || { r: 59, g: 130, b: 246, a: 1 };
+                };
+
+                const rgb = getHighlightColor(tokenElement);
+                if (rgb) {
+                    tokenElement.style.setProperty('--ftd-highlight', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.22)`);
+                    tokenElement.style.setProperty('--ftd-highlight-strong', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.48)`);
+                    tokenElement.style.setProperty('--ftd-highlight-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`);
+                }
+
                 // Scroll to the element
                 tokenElement.scrollIntoView({
                     behavior: 'smooth',
@@ -214,11 +312,14 @@ export function TokenDocumentation({
                 // Helper to remove highlight
                 const removeHighlight = () => {
                     tokenElement?.classList.remove('ftd-token-highlight');
+                    tokenElement?.style.removeProperty('--ftd-highlight');
+                    tokenElement?.style.removeProperty('--ftd-highlight-strong');
+                    tokenElement?.style.removeProperty('--ftd-highlight-bg');
                     document.removeEventListener('mousedown', removeHighlight);
                 };
 
-                // Remove highlight after 6 seconds automatically
-                const timeoutId = setTimeout(removeHighlight, 6000);
+                // Remove highlight after 8 seconds automatically
+                const timeoutId = setTimeout(removeHighlight, 8000);
 
                 // Or remove immediately on any click
                 document.addEventListener('mousedown', () => {
@@ -226,7 +327,10 @@ export function TokenDocumentation({
                     removeHighlight();
                 }, { once: true });
             }
-        }, 200);
+        };
+
+        // Wait a bit for tab content to render
+        setTimeout(() => tryFindAndHighlight(0), 200);
     };
 
     // --- Extract the three main token sets ---
@@ -260,22 +364,22 @@ export function TokenDocumentation({
 
     // --- Determine which tabs to show ---
     const availableTabs = useMemo(() => {
-        const tabs: Array<{ id: TabType; label: string; icon: string }> = [];
+        const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode }> = [];
 
         if (Object.keys(foundationTokens).length > 0) {
-            tabs.push({ id: 'foundation', label: 'Foundation', icon: '🏗️' });
+            tabs.push({ id: 'foundation', label: 'Foundation', icon: <Icon name="foundation" /> });
         }
 
         if (Object.keys(semanticTokens).length > 0) {
-            tabs.push({ id: 'semantic', label: 'Semantic', icon: '🎨' });
+            tabs.push({ id: 'semantic', label: 'Semantic', icon: <Icon name="semantic" /> });
         }
 
         if (Object.keys(componentTokens).length > 0) {
-            tabs.push({ id: 'components', label: 'Components', icon: '🧩' });
+            tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
         }
 
         // Always add Playground
-        tabs.push({ id: 'playground', label: 'Playground', icon: '🎮' });
+        tabs.push({ id: 'playground', label: 'Playground', icon: <Icon name="playground" /> });
 
         return tabs;
     }, [foundationTokens, semanticTokens, componentTokens]);
@@ -312,9 +416,21 @@ export function TokenDocumentation({
     }, [componentTokens]);
 
     // --- Interaction ---
+    const formatCopiedLabel = (label: string | undefined, value: string) => {
+        const text = label || value;
+        if (!text) return value;
+        if (text.startsWith('var(')) return text;
+        if (text.startsWith('--')) return `var(${text})`;
+        if (text.startsWith('{') && text.endsWith('}')) {
+            const refPath = text.slice(1, -1);
+            return `var(${toCssVariable(refPath)})`;
+        }
+        return text;
+    };
+
     const handleCopy = (value: string, label: string) => {
         navigator.clipboard.writeText(value);
-        setCopiedToken(label || value);
+        setCopiedToken(formatCopiedLabel(label, value));
         setTimeout(() => setCopiedToken(null), 2000);
     };
 
@@ -395,7 +511,19 @@ export function TokenDocumentation({
             data-theme={isDarkMode ? 'dark' : 'light'}
             style={{ opacity: isMounted ? 1 : 0 }}
         >
-            {copiedToken && <div className="ftd-copied-toast">Copied: {copiedToken}</div>}
+            {copiedToken && (
+                <div className="ftd-copied-toast" role="status" aria-live="polite">
+                    <div className="ftd-toast-icon">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div className="ftd-toast-content">
+                        <span className="ftd-toast-label">Copied</span>
+                        <span className="ftd-toast-value">{copiedToken}</span>
+                    </div>
+                </div>
+            )}
 
             <div className="ftd-navbar-sticky">
                 <header className="ftd-header">
@@ -433,7 +561,8 @@ export function TokenDocumentation({
                             title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
                             type="button"
                         >
-                            {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+                            <Icon name={isDarkMode ? 'sun' : 'moon'} />
+                            {isDarkMode ? 'Light' : 'Dark'}
                         </button>
                     </div>
                 </header>
@@ -475,6 +604,7 @@ export function TokenDocumentation({
                 {activeTab === 'components' && (
                     <ComponentsTab
                         components={mergedComponents}
+                        tokenMap={tokenMap}
                         onCopy={handleCopy}
                     />
                 )}

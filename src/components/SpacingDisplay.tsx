@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import type { SpacingDisplayProps, ParsedSpacingToken } from '../types';
 import { parseSpacingTokens } from '../utils/dimension';
 import { copyToClipboard } from '../utils/ui';
+import { Icon } from './Icon';
 
 /**
  * SpacingDisplay - Visual representation of spacing tokens
@@ -31,7 +32,7 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     if (spacingTokens.length === 0) {
         return (
             <div className="ftd-empty">
-                <div className="ftd-empty-icon">📏</div>
+                <div className="ftd-empty-icon"><Icon name="spacing" /></div>
                 <h4 className="ftd-empty-title">No spacing tokens found</h4>
                 <p className="ftd-empty-text">Add spacing tokens to your tokens.json file</p>
             </div>
@@ -39,9 +40,9 @@ export function SpacingDisplay({ tokens, onTokenClick }: SpacingDisplayProps) {
     }
 
     return (
-        <div className="ftd-section">
-            <div className="ftd-section-header">
-                <div className="ftd-section-icon">📏</div>
+            <div className="ftd-section">
+                <div className="ftd-section-header">
+                    <div className="ftd-section-icon"><Icon name="spacing" /></div>
                 <h2 className="ftd-section-title">Spacing Scale</h2>
                 <span className="ftd-section-count">{spacingTokens.length} tokens</span>
             </div>

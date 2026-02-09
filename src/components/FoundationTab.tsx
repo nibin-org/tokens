@@ -7,6 +7,7 @@ import { SizeDisplay } from './SizeDisplay';
 import { RadiusDisplay } from './RadiusDisplay';
 import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
+import { Icon, type IconName } from './Icon';
 
 interface FoundationTabProps {
     tokens: NestedTokens;
@@ -17,7 +18,7 @@ interface FoundationTabProps {
 interface Section {
     id: string;
     name: string;
-    icon: string;
+    icon: IconName;
     type: string;
     tokens: any;
     count: number;
@@ -27,7 +28,8 @@ interface Section {
  * FoundationTab - Displays all foundation tokens with scroll-spy navigation
  */
 export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabProps) {
-    const observer = useRef<IntersectionObserver | null>(null);
+    const rafId = useRef<number | null>(null);
+    const pendingSectionId = useRef<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
 
     const sections = useMemo(() => {
@@ -49,16 +51,16 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
             if (tokenType === 'color') {
                 allColors[groupName] = groupTokens;
             } else if (groupKey === 'space' || groupKey === 'spacing') {
-                items.push({ id: 'spacing-section', name: 'Spacing', icon: '📏', type: 'spacing', tokens: groupTokens, count });
+                items.push({ id: 'spacing-section', name: 'Spacing', icon: 'spacing', type: 'spacing', tokens: groupTokens, count });
             } else if (groupKey === 'size' || groupKey === 'sizing') {
-                items.push({ id: 'sizes-section', name: 'Sizes', icon: '📐', type: 'sizing', tokens: groupTokens, count });
+                items.push({ id: 'sizes-section', name: 'Sizes', icon: 'sizes', type: 'sizing', tokens: groupTokens, count });
             } else if (groupKey === 'radius') {
-                items.push({ id: 'radius-section', name: 'Radius', icon: '⬜', type: 'radius', tokens: groupTokens, count });
+                items.push({ id: 'radius-section', name: 'Radius', icon: 'radius', type: 'radius', tokens: groupTokens, count });
             } else if (groupKey.includes('font') || groupKey.includes('line')) {
                 items.push({
                     id: `typo-${groupKey}`,
                     name: groupName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-                    icon: '🔤',
+                    icon: 'typography',
                     type: 'typography',
                     tokens: groupTokens,
                     count
@@ -67,7 +69,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
         });
 
         if (Object.keys(allColors).length > 0) {
-            items.unshift({ id: 'colors-section', name: 'Colors', icon: '🎨', type: 'colors', tokens: allColors, count: Object.keys(allColors).length });
+            items.unshift({ id: 'colors-section', name: 'Colors', icon: 'colors', type: 'colors', tokens: allColors, count: Object.keys(allColors).length });
         }
 
         return items;
@@ -80,27 +82,84 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
         }
     }, [sections, activeSection]);
 
-    // Scroll Spy
+    // Scroll Spy (deterministic by scroll position)
     useEffect(() => {
-        const options = { rootMargin: '-180px 0px -70% 0px', threshold: 0 };
-        observer.current = new IntersectionObserver((entries) => {
-            const intersecting = entries.find(entry => entry.isIntersecting);
-            if (intersecting) {
-                setActiveSection(intersecting.target.id);
+        const getOffset = () => {
+            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
+            const base = sticky ? sticky.getBoundingClientRect().height : 160;
+            const offset = Math.round(base + 16);
+            document.documentElement.style.setProperty('--ftd-sticky-offset', `${offset}px`);
+            return offset;
+        };
+
+        const updateActive = () => {
+            const sectionElements = Array.from(document.querySelectorAll('.ftd-scroll-target')) as HTMLElement[];
+            if (sectionElements.length === 0) return;
+
+            const offset = getOffset();
+            if (pendingSectionId.current) {
+                const target = document.getElementById(pendingSectionId.current);
+                if (!target) {
+                    pendingSectionId.current = null;
+                } else {
+                    const top = target.getBoundingClientRect().top;
+                    if (top - offset > 0) {
+                        setActiveSection(pendingSectionId.current);
+                        return;
+                    }
+                    pendingSectionId.current = null;
+                }
             }
-        }, options);
+            const viewportTop = offset;
+            const viewportBottom = window.innerHeight;
+            let bestId = sectionElements[0].id;
+            let bestVisible = -1;
+            let bestTop = Infinity;
 
-        const sectionElements = document.querySelectorAll('.ftd-scroll-target');
-        sectionElements.forEach((el) => observer.current?.observe(el));
+            for (const el of sectionElements) {
+                const rect = el.getBoundingClientRect();
+                const visibleTop = Math.max(rect.top, viewportTop);
+                const visibleBottom = Math.min(rect.bottom, viewportBottom);
+                const visible = Math.max(0, visibleBottom - visibleTop);
+                if (visible > bestVisible || (visible === bestVisible && rect.top < bestTop)) {
+                    bestVisible = visible;
+                    bestId = el.id;
+                    bestTop = rect.top;
+                }
+            }
+            setActiveSection(bestId);
+        };
 
-        return () => observer.current?.disconnect();
+        const onScroll = () => {
+            if (rafId.current !== null) return;
+            rafId.current = window.requestAnimationFrame(() => {
+                rafId.current = null;
+                updateActive();
+            });
+        };
+
+        updateActive();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+            if (rafId.current !== null) {
+                window.cancelAnimationFrame(rafId.current);
+                rafId.current = null;
+            }
+        };
     }, [sections]);
 
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
+            const offset = (sticky ? sticky.getBoundingClientRect().height : 160) + 16;
+            const top = window.scrollY + element.getBoundingClientRect().top - offset;
             setActiveSection(id);
+            pendingSectionId.current = id;
+            window.scrollTo({ top, behavior: 'smooth' });
         }
     };
 
@@ -118,7 +177,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                             className={`ftd-color-nav-link ${activeSection === section.id ? 'active' : ''}`}
                             onClick={() => scrollToSection(section.id)}
                         >
-                            <span className="ftd-nav-icon">{section.icon}</span>
+                            <span className="ftd-nav-icon"><Icon name={section.icon} /></span>
                             <span className="ftd-nav-label">{section.name}</span>
                             <span className="ftd-nav-count">{section.count}</span>
                         </button>
@@ -128,11 +187,11 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
 
             <div className="ftd-color-content">
                 {sections.map((section) => (
-                    <div key={section.id} className="ftd-foundation-section">
+                    <React.Fragment key={section.id}>
                         {section.type === 'colors' && (
                             <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
-                                    <div className="ftd-section-icon">🎨</div>
+                                    <div className="ftd-section-icon"><Icon name="colors" /></div>
                                     <h2 className="ftd-section-title">Base Colors</h2>
                                     <span className="ftd-section-count">{Object.keys(section.tokens).length} families</span>
                                 </div>
@@ -165,14 +224,14 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                         {section.type === 'typography' && (
                             <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
-                                    <div className="ftd-section-icon">🔤</div>
+                                    <div className="ftd-section-icon"><Icon name="typography" /></div>
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
                                 <TypographyDisplay tokens={section.tokens} familyName={section.id.replace('typo-', '')} />
                             </div>
                         )}
-                    </div>
+                    </React.Fragment>
                 ))}
             </div>
         </div>

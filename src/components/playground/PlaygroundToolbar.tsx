@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '../Icon';
 
 export interface PlaygroundToolbarProps {
     activeComponent: string;
@@ -7,10 +8,10 @@ export interface PlaygroundToolbarProps {
 
 export function PlaygroundToolbar({ activeComponent, onComponentChange }: PlaygroundToolbarProps) {
     const components = [
-        { id: 'button', label: 'Button', icon: '🔘' },
-        { id: 'input', label: 'Input', icon: '⌨️', disabled: true },
-        { id: 'card', label: 'Card', icon: '🎴', disabled: true },
-        { id: 'badge', label: 'Badge', icon: '🏷️', disabled: true },
+        { id: 'button', label: 'Button', icon: 'button' as const },
+        { id: 'input', label: 'Input', icon: 'input' as const, disabled: true },
+        { id: 'card', label: 'Card', icon: 'card' as const, disabled: true },
+        { id: 'badge', label: 'Badge', icon: 'badge' as const, disabled: true },
     ];
 
     return (
@@ -30,7 +31,7 @@ export function PlaygroundToolbar({ activeComponent, onComponentChange }: Playgr
                         onClick={() => !comp.disabled && onComponentChange(comp.id)}
                         title={comp.disabled ? 'Coming soon' : comp.label}
                     >
-                        <span className="ftd-playground-tab-icon">{comp.icon}</span>
+                        <span className="ftd-playground-tab-icon"><Icon name={comp.icon} /></span>
                         <span className="ftd-playground-tab-label">{comp.label}</span>
                         {comp.disabled && <span className="ftd-playground-tab-badge">Soon</span>}
                     </button>

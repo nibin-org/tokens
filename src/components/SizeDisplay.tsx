@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import type { SizeDisplayProps, ParsedSizeToken } from '../types';
 import { parseSizeTokens } from '../utils/dimension';
 import { copyToClipboard } from '../utils/ui';
+import { Icon } from './Icon';
 
 /**
  * SizeDisplay - Visual representation of size tokens
@@ -31,7 +32,7 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     if (sizeTokens.length === 0) {
         return (
             <div className="ftd-empty">
-                <div className="ftd-empty-icon">📐</div>
+                <div className="ftd-empty-icon"><Icon name="sizes" /></div>
                 <h4 className="ftd-empty-title">No size tokens found</h4>
                 <p className="ftd-empty-text">Add size tokens to your tokens.json file</p>
             </div>
@@ -39,9 +40,9 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     }
 
     return (
-        <div className="ftd-section">
-            <div className="ftd-section-header">
-                <div className="ftd-section-icon">📐</div>
+            <div className="ftd-section">
+                <div className="ftd-section-header">
+                    <div className="ftd-section-icon"><Icon name="sizes" /></div>
                 <h2 className="ftd-section-title">Size Scale</h2>
                 <span className="ftd-section-count">{sizeTokens.length} tokens</span>
             </div>

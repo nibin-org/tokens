@@ -1,6 +1,6 @@
 {
   "name": "nibin-org-tokens-demo",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@nibin-org/tokens": "file:..",
-    "next": "14.0.0",
+    "next": "16.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -18,8 +18,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "14.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.1.6",
     "typescript": "^5"
   }
 }

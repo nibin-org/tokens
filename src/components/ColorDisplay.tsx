@@ -5,6 +5,7 @@ import type { ColorDisplayProps, ParsedColorToken, NestedTokens } from '../types
 import { parseBaseColors, parseSemanticColors, getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
 import { createTokenMap } from '../utils/core';
+import { Icon } from './Icon';
 
 /**
  * ColorDisplay - Beautiful visualization of color tokens
@@ -81,10 +82,10 @@ export function ColorDisplay({
     };
 
     const navItems = [
-        { id: 'base-colors', label: 'Base', icon: '🎨', count: colorFamilies.length },
-        { id: 'fill-colors', label: 'Fill', icon: '🖼️', count: semanticFill.length },
-        { id: 'stroke-colors', label: 'Stroke', icon: '✏️', count: semanticStroke.length },
-        { id: 'text-colors', label: 'Text', icon: '📝', count: semanticText.length },
+        { id: 'base-colors', label: 'Base', icon: 'colors' as const, count: colorFamilies.length },
+        { id: 'fill-colors', label: 'Fill', icon: 'fill' as const, count: semanticFill.length },
+        { id: 'stroke-colors', label: 'Stroke', icon: 'stroke' as const, count: semanticStroke.length },
+        { id: 'text-colors', label: 'Text', icon: 'text' as const, count: semanticText.length },
     ].filter(item => item.count > 0);
 
     return (
@@ -97,7 +98,7 @@ export function ColorDisplay({
                             className={`ftd-color-nav-link ${activeSection === item.id ? 'active' : ''}`}
                             onClick={() => scrollToSection(item.id)}
                         >
-                            <span className="ftd-nav-icon">{item.icon}</span>
+                            <span className="ftd-nav-icon"><Icon name={item.icon} /></span>
                             <span className="ftd-nav-label">{item.label}</span>
                             <span className="ftd-nav-count">{item.count}</span>
                         </button>
@@ -109,7 +110,7 @@ export function ColorDisplay({
                 {colorFamilies.length > 0 && (
                     <div id="base-colors" className="ftd-section ftd-color-section">
                         <div className="ftd-section-header">
-                            <div className="ftd-section-icon">🎨</div>
+                            <div className="ftd-section-icon"><Icon name="colors" /></div>
                             <h2 className="ftd-section-title">Base Colors</h2>
                         </div>
                         <div className="ftd-color-family-container">
@@ -125,6 +126,7 @@ export function ColorDisplay({
                                                 key={shade.name}
                                                 className="ftd-color-shade"
                                                 data-token-name={shade.name}
+                                                data-token-css-var={shade.cssVariable}
                                                 style={{
                                                     backgroundColor: shade.resolvedValue || shade.value,
                                                     color: getContrastColor(shade.resolvedValue || shade.value),
@@ -149,13 +151,13 @@ export function ColorDisplay({
                 )}
 
                 {[
-                    { id: 'fill-colors', title: 'Fill Colors', icon: '🖼️', data: semanticFill },
-                    { id: 'stroke-colors', title: 'Stroke Colors', icon: '✏️', data: semanticStroke },
-                    { id: 'text-colors', title: 'Text Colors', icon: '📝', data: semanticText }
+                    { id: 'fill-colors', title: 'Fill Colors', icon: 'fill' as const, data: semanticFill },
+                    { id: 'stroke-colors', title: 'Stroke Colors', icon: 'stroke' as const, data: semanticStroke },
+                    { id: 'text-colors', title: 'Text Colors', icon: 'text' as const, data: semanticText }
                 ].map(section => section.data.length > 0 && (
                     <div key={section.id} id={section.id} className="ftd-section ftd-color-section">
                         <div className="ftd-section-header">
-                            <div className="ftd-section-icon">{section.icon}</div>
+                            <div className="ftd-section-icon"><Icon name={section.icon} /></div>
                             <h2 className="ftd-section-title">{section.title}</h2>
                         </div>
                         <div className="ftd-semantic-families">
@@ -200,7 +202,7 @@ function ColorCard({ color, onCopy, onCopyText }: { color: ParsedColorToken; onC
     const textColor = getContrastColor(bgColor);
 
     return (
-        <div className="ftd-token-card">
+        <div className="ftd-token-card" data-token-name={color.name} data-token-css-var={color.cssVariable}>
             <div className="ftd-token-swatch" style={{ backgroundColor: bgColor, color: textColor }}>
                 {isAlias && <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.8 }}>Alias</span>}
             </div>

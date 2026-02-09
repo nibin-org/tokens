@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { NestedTokens, ParsedColorToken } from '../types';
 import { parseSemanticColors, getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
+import { Icon } from './Icon';
 
 interface SemanticTabProps {
     tokens: NestedTokens;
@@ -14,7 +15,7 @@ interface SemanticTabProps {
 interface Section {
     id: string;
     name: string;
-    icon: string;
+    icon: 'fill' | 'stroke' | 'text';
     colors: ParsedColorToken[];
 }
 
@@ -22,7 +23,8 @@ interface Section {
  * SemanticTab - Displays semantic color tokens with scroll-spy navigation
  */
 export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps) {
-    const observer = useRef<IntersectionObserver | null>(null);
+    const rafId = useRef<number | null>(null);
+    const pendingSectionId = useRef<string | null>(null);
     const [copiedValue, setCopiedValue] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
 
@@ -31,11 +33,14 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
     const strokeColors = useMemo(() => tokens.stroke ? parseSemanticColors(tokens.stroke as NestedTokens, 'stroke', tokenMap) : [], [tokens.stroke, tokenMap]);
     const textColors = useMemo(() => tokens.text ? parseSemanticColors(tokens.text as NestedTokens, 'text', tokenMap) : [], [tokens.text, tokenMap]);
 
-    const sections: Section[] = useMemo(() => [
-        { id: 'fill-section', name: 'Fill', icon: '🖼️', colors: fillColors },
-        { id: 'stroke-section', name: 'Stroke', icon: '✏️', colors: strokeColors },
-        { id: 'text-section', name: 'Text', icon: '📝', colors: textColors },
-    ].filter(section => section.colors.length > 0), [fillColors, strokeColors, textColors]);
+    const sections = useMemo<Section[]>(() => {
+        const items: Section[] = [
+            { id: 'fill-section', name: 'Fill', icon: 'fill', colors: fillColors },
+            { id: 'stroke-section', name: 'Stroke', icon: 'stroke', colors: strokeColors },
+            { id: 'text-section', name: 'Text', icon: 'text', colors: textColors },
+        ];
+        return items.filter(section => section.colors.length > 0);
+    }, [fillColors, strokeColors, textColors]);
 
     // Initialize active section
     useEffect(() => {
@@ -44,27 +49,84 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
         }
     }, [sections, activeSection]);
 
-    // Scroll Spy
+    // Scroll Spy (deterministic by scroll position)
     useEffect(() => {
-        const options = { rootMargin: '-100px 0px -50% 0px', threshold: 0 };
-        observer.current = new IntersectionObserver((entries) => {
-            const intersecting = entries.find(entry => entry.isIntersecting);
-            if (intersecting) {
-                setActiveSection(intersecting.target.id);
+        const getOffset = () => {
+            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
+            const base = sticky ? sticky.getBoundingClientRect().height : 160;
+            const offset = Math.round(base + 16);
+            document.documentElement.style.setProperty('--ftd-sticky-offset', `${offset}px`);
+            return offset;
+        };
+
+        const updateActive = () => {
+            const sectionElements = Array.from(document.querySelectorAll('.ftd-semantic-section')) as HTMLElement[];
+            if (sectionElements.length === 0) return;
+
+            const offset = getOffset();
+            if (pendingSectionId.current) {
+                const target = document.getElementById(pendingSectionId.current);
+                if (!target) {
+                    pendingSectionId.current = null;
+                } else {
+                    const top = target.getBoundingClientRect().top;
+                    if (top - offset > 0) {
+                        setActiveSection(pendingSectionId.current);
+                        return;
+                    }
+                    pendingSectionId.current = null;
+                }
             }
-        }, options);
+            const viewportTop = offset;
+            const viewportBottom = window.innerHeight;
+            let bestId = sectionElements[0].id;
+            let bestVisible = -1;
+            let bestTop = Infinity;
 
-        const sectionElements = document.querySelectorAll('.ftd-semantic-section');
-        sectionElements.forEach((el) => observer.current?.observe(el));
+            for (const el of sectionElements) {
+                const rect = el.getBoundingClientRect();
+                const visibleTop = Math.max(rect.top, viewportTop);
+                const visibleBottom = Math.min(rect.bottom, viewportBottom);
+                const visible = Math.max(0, visibleBottom - visibleTop);
+                if (visible > bestVisible || (visible === bestVisible && rect.top < bestTop)) {
+                    bestVisible = visible;
+                    bestId = el.id;
+                    bestTop = rect.top;
+                }
+            }
+            setActiveSection(bestId);
+        };
 
-        return () => observer.current?.disconnect();
+        const onScroll = () => {
+            if (rafId.current !== null) return;
+            rafId.current = window.requestAnimationFrame(() => {
+                rafId.current = null;
+                updateActive();
+            });
+        };
+
+        updateActive();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+            if (rafId.current !== null) {
+                window.cancelAnimationFrame(rafId.current);
+                rafId.current = null;
+            }
+        };
     }, [sections]);
 
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const sticky = document.querySelector('.ftd-navbar-sticky') as HTMLElement | null;
+            const offset = (sticky ? sticky.getBoundingClientRect().height : 160) + 16;
+            const top = window.scrollY + element.getBoundingClientRect().top - offset;
             setActiveSection(id);
+            pendingSectionId.current = id;
+            window.scrollTo({ top, behavior: 'smooth' });
         }
     };
 
@@ -95,7 +157,7 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                             className={`ftd-color-nav-link ${activeSection === section.id ? 'active' : ''}`}
                             onClick={() => scrollToSection(section.id)}
                         >
-                            <span className="ftd-nav-icon">{section.icon}</span>
+                            <span className="ftd-nav-icon"><Icon name={section.icon} /></span>
                             <span className="ftd-nav-label">{section.name}</span>
                             <span className="ftd-nav-count">{section.colors.length}</span>
                         </button>
@@ -108,7 +170,7 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                 {sections.map((section) => (
                     <div key={section.id} id={section.id} className="ftd-semantic-section ftd-section ftd-scroll-target">
                         <div className="ftd-section-header">
-                            <div className="ftd-section-icon">{section.icon}</div>
+                            <div className="ftd-section-icon"><Icon name={section.icon} /></div>
                             <h2 className="ftd-section-title">{section.name} Colors</h2>
                             <span className="ftd-section-count">{section.colors.length} tokens</span>
                         </div>
@@ -193,6 +255,7 @@ function SemanticColorGroups({
                                         key={color.name}
                                         className="ftd-token-card"
                                         data-token-name={color.name}
+                                        data-token-css-var={color.cssVariable}
                                         onClick={() => onCopy(color)}
                                     >
                                         <div className="ftd-token-swatch" style={{ backgroundColor: bgColor, color: textColor }}>
