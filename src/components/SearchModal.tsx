@@ -89,27 +89,36 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
         const fullCssVar = `var(${token.cssVariable})`;
 
         try {
-            await navigator.clipboard.writeText(fullCssVar);
-
-            // Navigate to the appropriate tab based on token category
-            if (onNavigateToTab) {
-                const targetTab = token.category === 'component' ? 'components' : token.category;
-                onNavigateToTab(targetTab as 'foundation' | 'semantic' | 'components');
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(fullCssVar);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = fullCssVar;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
             }
-
-            // Scroll to and highlight the token
-            if (onScrollToToken) {
-                // Use setTimeout to ensure tab switch completes before scrolling
-                setTimeout(() => {
-                    onScrollToToken(token.name, token.category, token.cssVariable);
-                }, 100);
-            }
-
-            onTokenClick?.({ value: token.value, cssVariable: token.cssVariable });
-            onClose();
         } catch (err) {
             console.error('Failed to copy:', err);
         }
+
+        // Navigate to the appropriate tab based on token category
+        if (onNavigateToTab) {
+            const targetTab = token.category === 'component' ? 'components' : token.category;
+            onNavigateToTab(targetTab as 'foundation' | 'semantic' | 'components');
+        }
+
+        // Scroll to and highlight the token
+        if (onScrollToToken) {
+            // Use setTimeout to ensure tab switch completes before scrolling
+            setTimeout(() => {
+                onScrollToToken(token.name, token.category, token.cssVariable);
+            }, 100);
+        }
+
+        onTokenClick?.({ value: token.value, cssVariable: token.cssVariable });
+        onClose();
     };
 
     const handleBackdropClick = (e: React.MouseEvent) => {
@@ -134,6 +143,10 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
         return acc;
     }, {} as Record<string, { category: string; type: string; results: SearchResult[] }>);
 
+    const activeOptionId = results[selectedIndex]
+        ? `ftd-search-option-${results[selectedIndex].token.id}`
+        : undefined;
+
     return (
         <div className="ftd-search-modal" onClick={handleBackdropClick}>
             <div className="ftd-search-container">
@@ -149,13 +162,22 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
                         placeholder="Search tokens... (name, value, or CSS variable)"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        aria-controls="ftd-search-results"
+                        aria-autocomplete="list"
+                        aria-activedescendant={activeOptionId}
                     />
                     <kbd className="ftd-search-kbd">ESC</kbd>
                 </div>
 
-                <div className="ftd-search-results" ref={resultsRef}>
+                <div
+                    id="ftd-search-results"
+                    className="ftd-search-results"
+                    ref={resultsRef}
+                    role="listbox"
+                    aria-label="Search results"
+                >
                     {query.trim() === '' && (
-                        <div className="ftd-search-empty">
+                        <div className="ftd-search-empty" role="status">
                             <p>Start typing to search across all tokens</p>
                             <div className="ftd-search-tips">
                                 <span>Try: "blue", "16px", "var(--", or "radius"</span>
@@ -164,7 +186,7 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
                     )}
 
                     {query.trim() !== '' && results.length === 0 && (
-                        <div className="ftd-search-empty">
+                        <div className="ftd-search-empty" role="status">
                             <p>No tokens found for "{query}"</p>
                             <div className="ftd-search-tips">
                                 <span>Try searching by name, value, or CSS variable</span>
@@ -173,8 +195,8 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
                     )}
 
                     {Object.entries(groupedResults).map(([key, group]) => (
-                        <div key={key} className="ftd-search-group">
-                            <div className="ftd-search-category-header">
+                        <div key={key} className="ftd-search-group" role="group" aria-labelledby={`ftd-search-group-${key}`}>
+                            <div className="ftd-search-category-header" id={`ftd-search-group-${key}`}>
                                 {group.category.charAt(0).toUpperCase() + group.category.slice(1)} · {group.type.charAt(0).toUpperCase() + group.type.slice(1)}
                                 <span className="ftd-search-count">{group.results.length}</span>
                             </div>
@@ -187,6 +209,9 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
                                         key={result.token.id}
                                         className={`ftd-search-result-item ${isSelected ? 'ftd-search-result-selected' : ''}`}
                                         onClick={() => handleTokenClick(result.token)}
+                                        id={`ftd-search-option-${result.token.id}`}
+                                        role="option"
+                                        aria-selected={isSelected}
                                     >
                                         {result.token.type === 'color' && (
                                             <div

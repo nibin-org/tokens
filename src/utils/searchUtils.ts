@@ -268,18 +268,30 @@ export function searchTokens(query: string, tokens: SearchableToken[], limit = 5
  * Highlight matching text in a string
  */
 export function highlightMatch(text: string, query: string): string {
-  if (!query.trim()) return text;
+  const escapeHtml = (value: string) =>
+    value.replace(/[&<>"']/g, (ch) => {
+      switch (ch) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return ch;
+      }
+    });
+
+  if (!query.trim()) return escapeHtml(text);
   
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
   const index = textLower.indexOf(queryLower);
   
   if (index !== -1) {
-    const before = text.slice(0, index);
-    const match = text.slice(index, index + query.length);
-    const after = text.slice(index + query.length);
+    const before = escapeHtml(text.slice(0, index));
+    const match = escapeHtml(text.slice(index, index + query.length));
+    const after = escapeHtml(text.slice(index + query.length));
     return `${before}<mark>${match}</mark>${after}`;
   }
   
-  return text;
+  return escapeHtml(text);
 }

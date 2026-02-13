@@ -34,7 +34,16 @@ export function ExportModal({ isOpen, onClose, tokens }: ExportModalProps) {
 
     const handleCopy = async () => {
         try {
-            await navigator.clipboard.writeText(generatedCode);
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(generatedCode);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = generatedCode;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {

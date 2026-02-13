@@ -6,7 +6,7 @@ export default defineConfig({
   dts: true,
   splitting: false,
   sourcemap: false, // Disabled for smaller package size
-  clean: false,
+  clean: true,
   minify: true, // Enable minification
   external: ['react', 'react-dom'],
   injectStyle: false,

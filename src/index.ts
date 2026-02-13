@@ -1,11 +1,11 @@
 /**
- * figma-token-docs
+ * @nibin-org/tokens
  * Beautiful visual documentation components for Figma design tokens
  * 
  * @example
  * ```tsx
- * import { TokenDocumentation } from 'figma-token-docs';
- * import 'figma-token-docs/styles.css';
+ * import { TokenDocumentation } from '@nibin-org/tokens';
+ * import '@nibin-org/tokens/styles.css';
  * import tokens from './tokens.json';
  * 
  * export default function DocsPage() {

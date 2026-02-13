@@ -66,9 +66,9 @@ export function createTokenMap(tokens: any): Record<string, string> {
     if (['global', '$themes', '$metadata'].includes(setKey)) return;
     const allTokens = findAllTokens(setData);
     allTokens.forEach(({ path, token }) => {
-      map[path] = token.value;
+      map[path] = typeof token.value === 'string' ? token.value : String(token.value);
       // Also map with setKey prefix if not already present
-      map[`${setKey}.${path}`] = token.value;
+      map[`${setKey}.${path}`] = typeof token.value === 'string' ? token.value : String(token.value);
     });
   });
 

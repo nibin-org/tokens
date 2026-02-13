@@ -1,10 +1,10 @@
 /**
- * Type definitions for figma-token-docs
+ * Type definitions for @nibin-org/tokens
  */
 
 // Token format from Figma Token Studio
 export interface TokenValue {
-  value: string;
+  value: string | number;
   type: string;
 }
 

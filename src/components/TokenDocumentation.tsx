@@ -68,9 +68,9 @@ export function TokenDocumentation({
     // Playground state - initialize from localStorage and merge with defaults
     const [playgroundConfig, setPlaygroundConfig] = useState<PlaygroundConfig>(() => {
         if (typeof window !== 'undefined') {
-            const savedConfig = localStorage.getItem('ftd-playground-config');
-            if (savedConfig) {
-                try {
+            try {
+                const savedConfig = localStorage.getItem('ftd-playground-config');
+                if (savedConfig) {
                     const parsed = JSON.parse(savedConfig);
                     // Migration: if old data has 'padding', split into paddingX and paddingY
                     const migrated = { ...parsed };
@@ -87,9 +87,9 @@ export function TokenDocumentation({
 
                     // Merge with defaults to ensure new fields are always present
                     return { ...defaultPlaygroundConfig, ...migrated };
-                } catch (e) {
-                    return defaultPlaygroundConfig;
                 }
+            } catch {
+                // Ignore storage access errors
             }
         }
         return defaultPlaygroundConfig;
@@ -100,10 +100,14 @@ export function TokenDocumentation({
     useLayoutEffect(() => {
         setIsMounted(true);
         if (typeof window !== 'undefined') {
-            // Restore Active Tab
-            const savedTab = localStorage.getItem('ftd-active-tab');
-            if (savedTab && ['foundation', 'semantic', 'components', 'playground'].includes(savedTab)) {
-                setActiveTab(savedTab as TabType);
+            try {
+                // Restore Active Tab
+                const savedTab = localStorage.getItem('ftd-active-tab');
+                if (savedTab && ['foundation', 'semantic', 'components', 'playground'].includes(savedTab)) {
+                    setActiveTab(savedTab as TabType);
+                }
+            } catch {
+                // Ignore storage access errors (e.g., privacy mode)
             }
         }
     }, []);
@@ -115,15 +119,23 @@ export function TokenDocumentation({
     const confirmReset = () => {
         setPlaygroundConfig(defaultPlaygroundConfig);
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('ftd-playground-config');
+            try {
+                localStorage.removeItem('ftd-playground-config');
+            } catch {
+                // Ignore storage access errors
+            }
         }
     };
 
     const [playgroundActiveTab, setPlaygroundActiveTab] = useState<'css' | 'scss' | 'tailwind'>(() => {
         if (typeof window !== 'undefined') {
-            const savedTab = localStorage.getItem('ftd-playground-active-tab');
-            if (savedTab && (savedTab === 'css' || savedTab === 'scss' || savedTab === 'tailwind')) {
-                return savedTab;
+            try {
+                const savedTab = localStorage.getItem('ftd-playground-active-tab');
+                if (savedTab && (savedTab === 'css' || savedTab === 'scss' || savedTab === 'tailwind')) {
+                    return savedTab;
+                }
+            } catch {
+                // Ignore storage access errors
             }
         }
         return 'css';
@@ -131,32 +143,52 @@ export function TokenDocumentation({
 
     // Initial theme restoration
     useEffect(() => {
-        const savedTheme = localStorage.getItem('ftd-theme-preference');
-        if (savedTheme === 'dark') setIsDarkMode(true);
-        else if (savedTheme === 'light') setIsDarkMode(false);
+        try {
+            const savedTheme = localStorage.getItem('ftd-theme-preference');
+            if (savedTheme === 'dark') setIsDarkMode(true);
+            else if (savedTheme === 'light') setIsDarkMode(false);
+        } catch {
+            // Ignore storage access errors
+        }
     }, []);
 
     const toggleTheme = () => {
         setIsDarkMode(prev => {
             const next = !prev;
-            localStorage.setItem('ftd-theme-preference', next ? 'dark' : 'light');
+            try {
+                localStorage.setItem('ftd-theme-preference', next ? 'dark' : 'light');
+            } catch {
+                // Ignore storage access errors
+            }
             return next;
         });
     };
 
     // Save playground state to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem('ftd-playground-config', JSON.stringify(playgroundConfig));
+        try {
+            localStorage.setItem('ftd-playground-config', JSON.stringify(playgroundConfig));
+        } catch {
+            // Ignore storage access errors
+        }
     }, [playgroundConfig]);
 
     useEffect(() => {
-        localStorage.setItem('ftd-playground-active-tab', playgroundActiveTab);
+        try {
+            localStorage.setItem('ftd-playground-active-tab', playgroundActiveTab);
+        } catch {
+            // Ignore storage access errors
+        }
     }, [playgroundActiveTab]);
 
     // Save active tab state
     useEffect(() => {
         if (typeof window !== 'undefined' && isMounted) {
-            localStorage.setItem('ftd-active-tab', activeTab);
+            try {
+                localStorage.setItem('ftd-active-tab', activeTab);
+            } catch {
+                // Ignore storage access errors
+            }
         }
     }, [activeTab, isMounted]);
 

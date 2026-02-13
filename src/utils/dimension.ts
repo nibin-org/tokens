@@ -15,11 +15,12 @@ function parseDimensionTokens<T>(
     .filter(t => t.token.type === type || t.token.type === 'dimension')
     .map(({ path, token }) => {
       const cleanName = path.replace(new RegExp(`^${prefix}-`, 'i'), '');
+      const value = typeof token.value === 'string' ? token.value : String(token.value);
       return mapFn(
         cleanName,
-        token.value,
+        value,
         toCssVariable(path, prefix),
-        parseNumericValue(token.value)
+        parseNumericValue(value)
       );
     });
 }

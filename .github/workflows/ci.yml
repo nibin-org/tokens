@@ -24,6 +24,7 @@ jobs:
     
     - run: npm ci
     - run: npm run typecheck
+    - run: npm run test
     - name: Build root package
       run: npm run build
     

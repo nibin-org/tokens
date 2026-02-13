@@ -52,11 +52,12 @@ export function parseBaseColors(tokens: NestedTokens, tokenMap: Record<string, s
       };
     }
 
-    const resolvedValue = resolveTokenValue(token.value, tokenMap);
+    const value = typeof token.value === 'string' ? token.value : String(token.value);
+    const resolvedValue = resolveTokenValue(value, tokenMap);
     
     const colorToken: ParsedColorToken = {
       name: path,
-      value: token.value,
+      value,
       resolvedValue: resolvedValue,
       cssVariable: toCssVariable(path, 'base'),
       shade: shadeName,
@@ -93,10 +94,13 @@ export function parseSemanticColors(tokens: NestedTokens, prefix: string, tokenM
   const allTokens = findAllTokens(tokens);
   return allTokens
     .filter(t => t.token.type === 'color')
-    .map(({ path, token }) => ({
-      name: path,
-      value: token.value,
-      resolvedValue: resolveTokenValue(token.value, tokenMap),
-      cssVariable: toCssVariable(path, prefix),
-    }));
+    .map(({ path, token }) => {
+      const value = typeof token.value === 'string' ? token.value : String(token.value);
+      return {
+        name: path,
+        value,
+        resolvedValue: resolveTokenValue(value, tokenMap),
+        cssVariable: toCssVariable(path, prefix),
+      };
+    });
 }

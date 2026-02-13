@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1] - 2026-02-13
+
+### Added
+- Reduced motion support via `prefers-reduced-motion`.
+- Focus-visible rings for search input, playground input, and custom select.
+- ARIA listbox semantics for search results.
+
+### Changed
+- CI now runs tests; build cleans `dist`; added `prepublishOnly` build guard.
+- CSS `sideEffects` now matches all CSS to prevent tree-shaking.
+- Token values now allow numbers in public types.
+
+### Fixed
+- Escaped search highlights to prevent HTML injection.
+- Clipboard fallback for search and export copy actions.
+- Guarded `localStorage` usage in privacy-restricted environments.
+- Numeric token handling in color/core/dimension parsing.
+- Updated package name references to `@nibin-org/tokens`.
+
 ## [1.16.0] - 2026-02-09
 
 ### Added
