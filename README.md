@@ -137,7 +137,23 @@ Need a full setup guide? See **[GUIDE.md](./GUIDE.md)**.
 | `title` | `string` | `"Design Tokens"` | Main header title |
 | `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
 | `darkMode` | `boolean` | `false` | Initial theme state |
+| `fontFamilySans` | `string` | `undefined` | Override the UI sans font-family (CSS value). Load the font in your app. |
+| `fontFamilyMono` | `string` | `undefined` | Override the UI mono font-family (CSS value). Load the font in your app. |
+| `loadDefaultFonts` | `boolean` | `true` | When `true`, loads Inter + JetBrains Mono from Google Fonts. Set `false` to use only your app fonts. |
 | `onTokenClick` | `(token) => void` | `undefined` | Callback when a token is clicked |
+
+### Custom Fonts
+
+You can use your app's fonts by disabling the default fonts and passing your own font-family values.
+
+```tsx
+<TokenDocumentation
+  tokens={tokens}
+  loadDefaultFonts={false}
+  fontFamilySans="'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+  fontFamilyMono="'Fira Code', ui-monospace, 'SF Mono', Consolas, monospace"
+/>
+```
 
 ### Standalone Components
 

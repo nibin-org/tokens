@@ -2,8 +2,6 @@
  * Tokvista - Production Ready Style
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 :root {
   --ftd-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --ftd-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Consolas', monospace;

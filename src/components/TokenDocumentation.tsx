@@ -30,6 +30,9 @@ export function TokenDocumentation({
     defaultTab,
     showSearch = true,
     darkMode: initialDarkMode = false,
+    fontFamilySans,
+    fontFamilyMono,
+    loadDefaultFonts = true,
     onTokenClick,
 }: TokenDocumentationProps) {
     // State
@@ -151,6 +154,26 @@ export function TokenDocumentation({
             // Ignore storage access errors
         }
     }, []);
+
+    // Load default fonts only when requested
+    useEffect(() => {
+        if (!loadDefaultFonts) return;
+        if (typeof document === 'undefined' || typeof window === 'undefined') return;
+        const isHappyDom = typeof navigator !== 'undefined' && /happy-dom/i.test(navigator.userAgent || '');
+        const isTestEnv =
+            typeof process !== 'undefined' &&
+            !!process.env &&
+            (process.env.NODE_ENV === 'test' || !!process.env.VITEST || !!process.env.VITEST_WORKER_ID);
+        if (isHappyDom || isTestEnv) return;
+        const existing = document.getElementById('ftd-google-fonts');
+        if (existing) return;
+        const link = document.createElement('link');
+        link.id = 'ftd-google-fonts';
+        link.rel = 'stylesheet';
+        link.href =
+            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap';
+        document.head.appendChild(link);
+    }, [loadDefaultFonts]);
 
     const toggleTheme = () => {
         setIsDarkMode(prev => {
@@ -483,6 +506,13 @@ export function TokenDocumentation({
     const isSingleToken = (obj: any): boolean =>
         obj && typeof obj === 'object' && obj.hasOwnProperty('value') && obj.hasOwnProperty('type');
 
+    const fontOverrides = useMemo(() => {
+        const overrides: Record<string, string> = {};
+        if (fontFamilySans) overrides['--ftd-font-sans'] = fontFamilySans;
+        if (fontFamilyMono) overrides['--ftd-font-mono'] = fontFamilyMono;
+        return overrides;
+    }, [fontFamilySans, fontFamilyMono]);
+
     // --- Sub-Components ---
 
     const TableSwatch = ({ data }: { data: { reference: string; resolved: string } | null }) => {
@@ -503,7 +533,7 @@ export function TokenDocumentation({
 
     // Skeleton Component
     const SkeletonLoader = () => (
-        <div className="ftd-container" data-theme={isDarkMode ? 'dark' : 'light'}>
+        <div className="ftd-container" data-theme={isDarkMode ? 'dark' : 'light'} style={fontOverrides}>
             <div className="ftd-navbar-sticky">
                 <header className="ftd-header">
                     <div className="ftd-title-wrapper">
@@ -541,7 +571,7 @@ export function TokenDocumentation({
         <div
             className={`ftd-container ftd-container-animated`}
             data-theme={isDarkMode ? 'dark' : 'light'}
-            style={{ opacity: isMounted ? 1 : 0 }}
+            style={{ opacity: isMounted ? 1 : 0, ...fontOverrides }}
         >
             {copiedToken && (
                 <div className="ftd-copied-toast" role="status" aria-live="polite">

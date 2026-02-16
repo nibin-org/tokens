@@ -81,6 +81,9 @@ export interface TokenDocumentationProps {
   defaultTab?: string;
   showSearch?: boolean;
   darkMode?: boolean;
+  fontFamilySans?: string;
+  fontFamilyMono?: string;
+  loadDefaultFonts?: boolean;
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
 }
 
