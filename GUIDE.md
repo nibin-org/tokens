@@ -1,6 +1,6 @@
 # ❖ The Design Token Workflow using Figma
 
-This guide explains how to set up your Figma design system to work perfectly with `@nibin-org/tokens`. Follow each step carefully with the accompanying screenshots to avoid any confusion.
+This guide explains how to set up your Figma design system to work perfectly with `tokvista`. Follow each step carefully with the accompanying screenshots to avoid any confusion.
 
 ---
 
@@ -131,7 +131,7 @@ Fill in the GitHub sync configuration form with your repository details:
 
 3. **Repository (owner/repo)**: Enter your repository path
    - Format: `your-org/your-repo` 
-   - Example: `nibin-org/tokens`
+   - Example: `nibin-org/tokvista`
 
 4. **Branch**: Specify which branch to sync to
    - Use `main` for your production branch
@@ -227,8 +227,8 @@ Once `tokens.json` is in your repo, usage is simple:
 
 ```tsx
 // src/app/page.tsx
-import { TokenDocumentation } from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
+import { TokenDocumentation } from 'tokvista';
+import 'tokvista/styles.css';
 
 // Import the JSON file synced from Figma
 import tokens from '../tokens.json'; 

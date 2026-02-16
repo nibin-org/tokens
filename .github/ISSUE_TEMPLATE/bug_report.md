@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
  - OS: [e.g. iOS]
  - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
- - @nibin-org/tokens version: [e.g. 1.0.2]
+ - tokvista version: [e.g. 1.0.2]
  - React version: [e.g. 18.2.0]
 
 **Additional context**

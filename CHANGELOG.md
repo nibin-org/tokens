@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clipboard fallback for search and export copy actions.
 - Guarded `localStorage` usage in privacy-restricted environments.
 - Numeric token handling in color/core/dimension parsing.
-- Updated package name references to `@nibin-org/tokens`.
+- Updated package name references to `tokvista`.
 
 ## [1.16.0] - 2026-02-09
 
@@ -208,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2025-02-02
 
 ### Added
-- Initial release of @nibin-org/tokens
+- Initial release of tokvista
 - TokenDocumentation component for interactive token display
 - ColorGrid component for color palette visualization
 - SpacingScale component for spacing token display

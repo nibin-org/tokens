@@ -1,5 +1,5 @@
 /**
- * Type definitions for @nibin-org/tokens
+ * Type definitions for Tokvista
  */
 
 // Token format from Figma Token Studio

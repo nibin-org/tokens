@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '@nibin-org/tokens Demo',
+  title: 'Tokvista Demo',
   description: 'Interactive design tokens documentation demo',
 }
 

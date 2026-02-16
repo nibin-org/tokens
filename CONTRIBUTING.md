@@ -1,12 +1,12 @@
-# Contributing to @nibin-org/tokens
+# Contributing to Tokvista
 
 Thank you for your interest in contributing! 🎉
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/nibin-org/tokens.git
-cd tokens
+git clone https://github.com/nibin-org/tokvista.git
+cd tokvista
 npm install
 npm run dev
 ```

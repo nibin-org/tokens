@@ -1,16 +1,16 @@
-# @nibin-org/tokens
+# Tokvista
 
 <div align="center">
 
-![npm version](https://img.shields.io/npm/v/@nibin-org/tokens?style=for-the-badge&colorA=000000&colorB=5b47fb)
-![npm downloads](https://img.shields.io/npm/dm/@nibin-org/tokens.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
+![npm version](https://img.shields.io/npm/v/tokvista?style=for-the-badge&colorA=000000&colorB=5b47fb)
+![npm downloads](https://img.shields.io/npm/dm/tokvista.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
-**Transform your design tokens into a premium, interactive documentation site.**
+**The visual layer for your design system.**
 
 Visualize colors, spacing, typography, and component tokens with zero configuration.
 
-[Live Demo](https://nibin-org.github.io/tokens/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokens/issues)
+[Live Demo](https://nibin-org.github.io/tokvista/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokvista/issues)
 
 </div>
 
@@ -18,7 +18,7 @@ Visualize colors, spacing, typography, and component tokens with zero configurat
 
 ## Why This Package
 
-Design token documentation is often static and hard to scan. **@nibin-org/tokens** gives you:
+Design token documentation is often static and hard to scan. **Tokvista** gives you:
 
 - Beautiful visuals for colors, spacing, sizes, radius, and typography
 - Instant search with `Cmd+K` / `Ctrl+K`
@@ -35,19 +35,28 @@ Design token documentation is often static and hard to scan. **@nibin-org/tokens
 ### Install
 
 ```bash
-npm install @nibin-org/tokens
+npm install tokvista
 ```
 
 ### Use
 
 ```tsx
-import { TokenDocumentation } from '@nibin-org/tokens';
-import '@nibin-org/tokens/styles.css';
+import { TokenDocumentation } from 'tokvista';
+import 'tokvista/styles.css';
 import tokens from './tokens.json';
 
 export default function DesignSystem() {
   return <TokenDocumentation tokens={tokens} />;
 }
+```
+
+---
+
+## Migration from @nibin-org/tokens
+
+```bash
+npm uninstall @nibin-org/tokens
+npm install tokvista
 ```
 
 ---
@@ -68,6 +77,14 @@ Export CSS, SCSS, JavaScript, or Tailwind config with high‑contrast syntax hig
 
 ### Playground
 Preview components using your tokens and custom class names.
+
+---
+
+## Demo
+
+Live demo: https://nibin-org.github.io/tokvista/
+
+Run it locally: see Local Development below.
 
 ---
 
@@ -173,10 +190,10 @@ Demo will run at `http://localhost:3000`.
 
 ## Resources
 
-- [Live Demo](https://nibin-org.github.io/tokens/)
+- [Live Demo](https://nibin-org.github.io/tokvista/)
 - [Figma Setup Guide](./GUIDE.md)
-- [GitHub Repository](https://github.com/nibin-org/tokens)
-- [Issue Tracker](https://github.com/nibin-org/tokens/issues)
+- [GitHub Repository](https://github.com/nibin-org/tokvista)
+- [Issue Tracker](https://github.com/nibin-org/tokvista/issues)
 
 ---
 

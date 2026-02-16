@@ -1,7 +1,7 @@
 {
-  "name": "@nibin-org/tokens",
-  "version": "1.16.1",
-  "description": "Beautiful, interactive visual documentation for design tokens. Transform your Figma tokens into living documentation with color palettes, spacing scales, and copy-to-clipboard functionality.",
+  "name": "tokvista",
+  "version": "1.0.0",
+  "description": "Interactive visual documentation for design tokens.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -15,11 +15,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nibin-org/tokens"
+    "url": "https://github.com/nibin-org/tokvista.git"
   },
-  "homepage": "https://github.com/nibin-org/tokens#readme",
+  "homepage": "https://github.com/nibin-org/tokvista#readme",
   "bugs": {
-    "url": "https://github.com/nibin-org/tokens/issues"
+    "url": "https://github.com/nibin-org/tokvista/issues"
   },
   "exports": {
     ".": {

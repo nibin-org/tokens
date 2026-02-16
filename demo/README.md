@@ -1,6 +1,6 @@
-# @nibin-org/tokens Demo
+# Tokvista Demo
 
-This is a demo application showcasing the `@nibin-org/tokens` package.
+This is a demo application showcasing the `tokvista` package.
 
 ## Getting Started
 
@@ -28,4 +28,4 @@ npm run dev
 
 ## Package Used
 
-- [@nibin-org/tokens](https://www.npmjs.com/package/@nibin-org/tokens) - Beautiful, interactive visual documentation for design tokens
+- [tokvista](https://www.npmjs.com/package/tokvista) - Beautiful, interactive visual documentation for design tokens

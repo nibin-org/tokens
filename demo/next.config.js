@@ -2,11 +2,11 @@ const pkg = require('../package.json')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@nibin-org/tokens'],
+  transpilePackages: ['tokvista'],
   output: 'export',
   trailingSlash: true,
-  basePath: '/tokens',
-  assetPrefix: '/tokens',
+  basePath: '/tokvista',
+  assetPrefix: '/tokvista',
   images: {
     unoptimized: true
   },

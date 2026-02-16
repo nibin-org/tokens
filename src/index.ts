@@ -1,11 +1,11 @@
 /**
- * @nibin-org/tokens
+ * Tokvista
  * Beautiful visual documentation components for Figma design tokens
  * 
  * @example
  * ```tsx
- * import { TokenDocumentation } from '@nibin-org/tokens';
- * import '@nibin-org/tokens/styles.css';
+ * import { TokenDocumentation } from 'tokvista';
+ * import 'tokvista/styles.css';
  * import tokens from './tokens.json';
  * 
  * export default function DocsPage() {
