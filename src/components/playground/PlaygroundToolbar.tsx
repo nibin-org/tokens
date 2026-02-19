@@ -17,8 +17,11 @@ export function PlaygroundToolbar({ activeComponent, onComponentChange }: Playgr
     return (
         <div className="ftd-playground-toolbar-v2">
             <div className="ftd-playground-toolbar-header">
-                <h3 className="ftd-playground-toolbar-title">Playground</h3>
-                <p className="ftd-playground-toolbar-subtitle">Test and customize components with your design tokens</p>
+                <div className="ftd-playground-toolbar-title-row">
+                    <h3 className="ftd-playground-toolbar-title">Playground</h3>
+                    <span className="ftd-tab-badge ftd-tab-badge-lab">Custom</span>
+                </div>
+                <p className="ftd-playground-toolbar-subtitle">Experiment (not spec). Outputs are for exploration.</p>
             </div>
 
             <div className="ftd-playground-tabs-v2">

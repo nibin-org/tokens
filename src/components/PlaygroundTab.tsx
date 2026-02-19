@@ -47,6 +47,12 @@ export function PlaygroundTab({ tokens, tokenMap, config, setConfig, activeTab, 
 
     return (
         <div className="ftd-playground-container">
+            <div className="ftd-source-banner sandbox">
+                <div className="ftd-source-badge sandbox">Experimentation Area</div>
+                <p className="ftd-source-text">
+                    Interactive sandbox for custom builds. Experiment with any available tokens to create and export unique component variations.
+                </p>
+            </div>
             <PlaygroundToolbar
                 activeComponent={activeComponent}
                 onComponentChange={setActiveComponent}

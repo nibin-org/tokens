@@ -65,7 +65,7 @@ export function TokenDocumentation({
         activeBackgroundColor: 'fill-blue-darker',
         activeTextColor: 'text-white',
         activeBorderColor: 'stroke-blue-dark',
-        className: 'button',
+        className: 'custom-button',
     };
 
     // Playground state - initialize from localStorage and merge with defaults
@@ -86,6 +86,10 @@ export function TokenDocumentation({
                     // Fix typo in activeBorderColor migration
                     if (migrated.activeBorderColor === 'stroke-blue-darker') {
                         migrated.activeBorderColor = 'stroke-blue-dark';
+                    }
+
+                    if (migrated.className === 'button') {
+                        migrated.className = 'custom-button';
                     }
 
                     // Merge with defaults to ensure new fields are always present
@@ -430,11 +434,11 @@ export function TokenDocumentation({
         }
 
         if (Object.keys(componentTokens).length > 0) {
-            tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
+            tabs.push({ id: 'components', label: 'Official Specs', icon: <Icon name="components" /> });
         }
 
         // Always add Playground
-        tabs.push({ id: 'playground', label: 'Playground', icon: <Icon name="playground" /> });
+        tabs.push({ id: 'playground', label: 'Interactive Sandbox', icon: <Icon name="playground" /> });
 
         return tabs;
     }, [foundationTokens, semanticTokens, componentTokens]);
@@ -452,6 +456,12 @@ export function TokenDocumentation({
             return values.length > 0 && values.every((v: any) => isSingleToken(v) && (v.type === 'dimension' || v.type === 'spacing' || v.type === 'sizing' || v.type === 'borderRadius'));
         };
 
+        const isNestedDimensionGroup = (obj: any): boolean => {
+            if (!obj || typeof obj !== 'object') return false;
+            const values = Object.values(obj);
+            return values.length > 0 && values.every((v: any) => isDimensionGroup(v));
+        };
+
         Object.entries(componentTokens).forEach(([compName, content]) => {
             if (!content || typeof content !== 'object' || isSingleToken(content)) return;
 
@@ -460,7 +470,19 @@ export function TokenDocumentation({
             Object.entries(content as any).forEach(([itemKey, itemValue]) => {
                 if (isDimensionGroup(itemValue)) {
                     components[compName].dimensions[itemKey] = itemValue as DimensionGroup;
-                } else if (typeof itemValue === 'object' && !isSingleToken(itemValue)) {
+                    return;
+                }
+
+                if (isNestedDimensionGroup(itemValue)) {
+                    Object.entries(itemValue as Record<string, any>).forEach(([subKey, subValue]) => {
+                        if (isDimensionGroup(subValue)) {
+                            components[compName].dimensions[`${itemKey}-${subKey}`] = subValue as DimensionGroup;
+                        }
+                    });
+                    return;
+                }
+
+                if (typeof itemValue === 'object' && !isSingleToken(itemValue)) {
                     // It's a variant (e.g. "Primary", "Ghost", "Large")
                     components[compName].variants[itemKey] = itemValue as VariantTokens;
                 }

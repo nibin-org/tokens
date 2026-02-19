@@ -125,7 +125,7 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
         const activeTextCss = getCssValue(config.activeTextColor, hoverTextCss);
         const activeBorderCss = getCssValue(config.activeBorderColor, hoverBorderCss);
 
-        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.button';
+        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.custom-button';
 
         const iconCss = config.showIcon ? `
 ${className}-icon {
@@ -182,7 +182,7 @@ ${className}:active {
         const activeTextScss = getScssValue(config.activeTextColor, hoverTextScss);
         const activeBorderScss = getScssValue(config.activeBorderColor, hoverBorderScss);
 
-        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.button';
+        const className = config.className ? (config.className.startsWith('.') ? config.className : `.${config.className}`) : '.custom-button';
 
         const iconScss = config.showIcon ? `
   ${className.replace('.', '&-')}icon {
@@ -243,7 +243,7 @@ ${iconScss}
             config.isFullWidth ? 'w-full' : ''
         ].filter(Boolean).join(' ');
 
-        const cleanClassName = config.className ? config.className.replace('.', '') : 'button';
+        const cleanClassName = config.className ? config.className.replace('.', '') : 'custom-button';
         const content = config.showIcon
             ? `\n  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">\n    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />\n  </svg>\n  ${config.buttonText || 'Button'}\n`
             : ` ${config.buttonText || 'Button'} `;
@@ -298,7 +298,7 @@ ${iconScss}
                         type="text"
                         value={config.className}
                         onChange={(e) => updateConfig('className', e.target.value)}
-                        placeholder="e.g. button-custom"
+                        placeholder="e.g. custom-button"
                         className="ftd-playground-input"
                     />
                 </div>
