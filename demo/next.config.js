@@ -1,12 +1,13 @@
 const pkg = require('../package.json')
+const isProd = process.env.NODE_ENV === 'production'
+const basePath = '/tokvista'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['tokvista'],
   output: 'export',
   trailingSlash: true,
-  basePath: '/tokvista',
-  assetPrefix: '/tokvista',
+  ...(isProd ? { basePath, assetPrefix: basePath } : {}),
   images: {
     unoptimized: true
   },

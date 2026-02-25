@@ -23,6 +23,8 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
 
     // Debounced search
     useEffect(() => {
+        if (!isOpen) return;
+
         const timer = setTimeout(() => {
             if (query.trim()) {
                 const searchResults = searchTokens(query, indexedTokens);
@@ -34,7 +36,7 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
         }, 150);
 
         return () => clearTimeout(timer);
-    }, [query, indexedTokens]);
+    }, [isOpen, query, indexedTokens]);
 
     // Focus input when modal opens
     useEffect(() => {

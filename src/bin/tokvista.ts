@@ -190,7 +190,7 @@ async function startServer(html: string, preferredPort: number) {
   );
 }
 
-function openBrowser(url: string) {
+function openBrowser(url: string): Promise<void> {
   const platform = process.platform;
   const command =
     platform === 'darwin'
@@ -199,11 +199,18 @@ function openBrowser(url: string) {
         ? { cmd: 'cmd', args: ['/c', 'start', '', url] }
         : { cmd: 'xdg-open', args: [url] };
 
-  const child = spawn(command.cmd, command.args, {
-    stdio: 'ignore',
-    detached: true,
+  return new Promise((resolve, reject) => {
+    const child = spawn(command.cmd, command.args, {
+      stdio: 'ignore',
+      detached: true,
+    });
+
+    child.once('error', reject);
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
   });
-  child.unref();
 }
 
 async function readTokens(tokenPath: string): Promise<unknown> {
@@ -245,7 +252,7 @@ async function main() {
 
     if (options.openBrowser) {
       try {
-        openBrowser(url);
+        await openBrowser(url);
       } catch (error) {
         console.warn(
           `Could not auto-open browser. Open this URL manually: ${url}\n${(error as Error).message}`
