@@ -60,7 +60,25 @@ jobs:
       - name: Build package
         run: npm run build
 
+      - name: Check if version already exists on npm
+        id: npm_version_check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "tokvista@$VERSION" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION already exists on npm. Skipping publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION is not published yet. Proceeding."
+          fi
+
       - name: Publish to npm
+        if: steps.npm_version_check.outputs.exists == 'false'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish skipped
+        if: steps.npm_version_check.outputs.exists == 'true'
+        run: echo "Skipped npm publish because tokvista@${{ steps.npm_version_check.outputs.version }} is already published."

@@ -7,7 +7,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "tokvista": "./dist/bin/tokvista.js"
+    "tokvista": "dist/bin/tokvista.js"
   },
   "sideEffects": [
     "**/*.css"
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nibin-org/tokvista.git"
+    "url": "git+https://github.com/nibin-org/tokvista.git"
   },
   "homepage": "https://github.com/nibin-org/tokvista#readme",
   "bugs": {
