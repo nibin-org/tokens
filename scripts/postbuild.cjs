@@ -7,6 +7,7 @@ try {
     const distDir = path.join(__dirname, '../dist');
     const srcStyle = path.join(__dirname, '../src/styles.css');
     const distStyle = path.join(distDir, 'styles.css');
+    const distCliBin = path.join(distDir, 'bin/tokvista.js');
 
     if (!fs.existsSync(distDir)) {
         console.log('Creating dist folder...');
@@ -15,6 +16,11 @@ try {
 
     console.log('Copying styles.css from', srcStyle, 'to', distStyle);
     fs.copyFileSync(srcStyle, distStyle);
+
+    if (fs.existsSync(distCliBin)) {
+        console.log('Setting executable permissions on', distCliBin);
+        fs.chmodSync(distCliBin, 0o755);
+    }
 
     console.log('Post-build complete.');
 } catch (err) {

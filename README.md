@@ -38,6 +38,18 @@ Design token documentation is often static and hard to scan. **Tokvista** gives 
 npm install tokvista
 ```
 
+### Run as CLI (No React Setup)
+
+```bash
+npx tokvista tokens.json
+```
+
+Optional flags:
+
+```bash
+npx tokvista ./tokens.json --port 4000 --no-open
+```
+
 ### Use
 
 ```tsx
