@@ -1,0 +1,73 @@
+{
+  "Foundation/Value": {
+    "base": {
+      "color": {
+        "blue": {
+          "500": { "value": "#2563EB", "type": "color" },
+          "600": { "value": "#1D4ED8", "type": "color" }
+        },
+        "gray": {
+          "100": { "value": "#F3F4F6", "type": "color" },
+          "900": { "value": "#111827", "type": "color" }
+        }
+      },
+      "space": {
+        "xs": { "value": "4px", "type": "spacing" },
+        "sm": { "value": "8px", "type": "spacing" },
+        "md": { "value": "16px", "type": "spacing" }
+      },
+      "size": {
+        "md": { "value": "40px", "type": "sizing" },
+        "lg": { "value": "48px", "type": "sizing" }
+      },
+      "radius": {
+        "sm": { "value": "6px", "type": "borderRadius" },
+        "md": { "value": "10px", "type": "borderRadius" }
+      },
+      "font-size": {
+        "sm": { "value": "12px", "type": "fontSize" },
+        "md": { "value": "14px", "type": "fontSize" }
+      }
+    }
+  },
+  "Semantic/Value": {
+    "fill": {
+      "primary": { "value": "{base.color.blue.500}", "type": "color" },
+      "surface": { "value": "{base.color.gray.100}", "type": "color" }
+    },
+    "stroke": {
+      "primary": { "value": "{base.color.blue.600}", "type": "color" }
+    },
+    "text": {
+      "primary": { "value": "{base.color.gray.900}", "type": "color" },
+      "inverse": { "value": "#FFFFFF", "type": "color" }
+    }
+  },
+  "Components/Mode 1": {
+    "button": {
+      "Primary": {
+        "fill": { "value": "#2563EB", "type": "color" },
+        "text": { "value": "#FFFFFF", "type": "color" },
+        "stroke": { "value": "#1D4ED8", "type": "color" }
+      },
+      "height": {
+        "md": { "value": "40px", "type": "dimension" }
+      },
+      "padding-x": {
+        "md": { "value": "16px", "type": "dimension" }
+      },
+      "padding-y": {
+        "md": { "value": "10px", "type": "dimension" }
+      },
+      "radius": {
+        "md": { "value": "10px", "type": "dimension" }
+      },
+      "font-size": {
+        "md": { "value": "14px", "type": "dimension" }
+      },
+      "line-height": {
+        "md": { "value": "20px", "type": "dimension" }
+      }
+    }
+  }
+}

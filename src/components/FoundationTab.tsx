@@ -7,6 +7,7 @@ import { SizeDisplay } from './SizeDisplay';
 import { RadiusDisplay } from './RadiusDisplay';
 import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
+import { findAllTokens, toCssVariable } from '../utils/core';
 import { Icon, type IconName } from './Icon';
 
 interface FoundationTabProps {
@@ -24,6 +25,130 @@ interface Section {
     count: number;
 }
 
+type FoundationTokenKind = 'color' | 'spacing' | 'sizing' | 'radius' | 'typography' | 'other';
+
+function isTokenObject(value: unknown): value is { value: string | number; type: string } {
+    return !!value && typeof value === 'object' && 'value' in (value as Record<string, unknown>) && 'type' in (value as Record<string, unknown>);
+}
+
+function inferKindFromPath(path: string[]): FoundationTokenKind {
+    const joined = path.join('-').toLowerCase();
+
+    if (joined.includes('radius') || joined.includes('round')) return 'radius';
+    if (joined.includes('space') || joined.includes('spacing') || joined.includes('gap') || joined.includes('padding') || joined.includes('margin')) return 'spacing';
+    if (joined.includes('font') || joined.includes('line-height') || joined.includes('lineheight') || joined.includes('letter')) return 'typography';
+    if (joined.includes('size') || joined.includes('width') || joined.includes('height')) return 'sizing';
+
+    return 'other';
+}
+
+function normalizeTokenKind(type: string, path: string[]): FoundationTokenKind {
+    const raw = String(type || '').toLowerCase();
+
+    if (raw === 'color') return 'color';
+    if (raw === 'spacing') return 'spacing';
+    if (raw === 'sizing' || raw === 'size') return 'sizing';
+    if (raw === 'borderradius' || raw === 'radius') return 'radius';
+    if (raw.includes('font') || raw.includes('line') || raw.includes('letter')) return 'typography';
+
+    if (raw === 'dimension') return inferKindFromPath(path);
+
+    const inferred = inferKindFromPath(path);
+    return inferred === 'other' ? 'other' : inferred;
+}
+
+function normalizePathForKind(path: string[]): string[] {
+    const genericWrappers = new Set(['foundation', 'value', 'base', 'token', 'tokens', 'primitive', 'primitives']);
+
+    let start = 0;
+    while (start < path.length - 1) {
+        const part = path[start].toLowerCase();
+        if (genericWrappers.has(part)) {
+            start += 1;
+            continue;
+        }
+        break;
+    }
+
+    return path.slice(start);
+}
+
+function addTokenAtPath(target: Record<string, any>, path: string[], token: { value: string | number; type: string }) {
+    if (path.length === 0) return;
+
+    let cursor: Record<string, any> = target;
+    for (let i = 0; i < path.length - 1; i += 1) {
+        const segment = path[i];
+        if (!cursor[segment] || typeof cursor[segment] !== 'object' || isTokenObject(cursor[segment])) {
+            cursor[segment] = {};
+        }
+        cursor = cursor[segment] as Record<string, any>;
+    }
+
+    cursor[path[path.length - 1]] = token;
+}
+
+function collectTypedTrees(tokens: NestedTokens) {
+    const colorTree: Record<string, any> = {};
+    const spacingTree: Record<string, any> = {};
+    const sizingTree: Record<string, any> = {};
+    const radiusTree: Record<string, any> = {};
+    const typographyTree: Record<string, any> = {};
+
+    const walk = (node: unknown, path: string[]) => {
+        if (!node || typeof node !== 'object') return;
+
+        if (isTokenObject(node)) {
+            const kind = normalizeTokenKind(node.type, path);
+            const normalizedPath = normalizePathForKind(path);
+            if (kind === 'color') addTokenAtPath(colorTree, normalizedPath, node);
+            if (kind === 'spacing') addTokenAtPath(spacingTree, normalizedPath, node);
+            if (kind === 'sizing') addTokenAtPath(sizingTree, normalizedPath, node);
+            if (kind === 'radius') addTokenAtPath(radiusTree, normalizedPath, node);
+            if (kind === 'typography') addTokenAtPath(typographyTree, normalizedPath, node);
+            return;
+        }
+
+        Object.entries(node as Record<string, unknown>).forEach(([key, value]) => {
+            walk(value, [...path, key]);
+        });
+    };
+
+    walk(tokens, []);
+    return { colorTree, spacingTree, sizingTree, radiusTree, typographyTree };
+}
+
+function normalizeColorFamilyName(path: string[]) {
+    const wrappers = new Set(['color', 'colors', 'base', 'foundation', 'value', 'primitive', 'primitives', 'palette', 'palettes']);
+    const filtered = path.filter(p => !wrappers.has(p.toLowerCase()));
+    const finalParts = filtered.length > 0 ? filtered : path;
+    return finalParts.join('-') || 'base';
+}
+
+function flattenColorFamilies(node: unknown, path: string[] = [], families: Record<string, any> = {}) {
+    if (!node || typeof node !== 'object') return families;
+
+    const entries = Object.entries(node as Record<string, unknown>);
+    const directTokens = entries.filter(([, value]) => isTokenObject(value));
+
+    if (directTokens.length > 0) {
+        const familyName = normalizeColorFamilyName(path);
+        if (!families[familyName]) families[familyName] = {};
+        directTokens.forEach(([shadeName, token]) => {
+            families[familyName][shadeName] = token;
+        });
+        return families;
+    }
+
+    entries.forEach(([key, value]) => {
+        if (value && typeof value === 'object') {
+            flattenColorFamilies(value, [...path, key], families);
+        }
+    });
+
+    return families;
+}
+
 /**
  * FoundationTab - Displays all foundation tokens with scroll-spy navigation
  */
@@ -34,42 +159,39 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
 
     const sections = useMemo(() => {
         const items: Section[] = [];
-        const allColors: any = {};
 
-        Object.entries(tokens).forEach(([groupName, groupTokens]) => {
-            if (!groupTokens || typeof groupTokens !== 'object') return;
+        const { colorTree, spacingTree, sizingTree, radiusTree, typographyTree } = collectTypedTrees(tokens);
+        const colorFamilies = flattenColorFamilies(colorTree);
 
-            const groupKey = groupName.toLowerCase();
-            const firstToken = Object.values(groupTokens)[0] as any;
-            const tokenType = firstToken?.type || 'other';
+        if (Object.keys(colorFamilies).length > 0) {
+            items.push({
+                id: 'colors-section',
+                name: 'Colors',
+                icon: 'colors',
+                type: 'colors',
+                tokens: colorFamilies,
+                count: Object.keys(colorFamilies).length
+            });
+        }
 
-            const count = Object.keys(groupTokens).filter(key => {
-                const val = (groupTokens as any)[key];
-                return val && typeof val === 'object';
-            }).length;
+        const spacingCount = findAllTokens(spacingTree as NestedTokens).length;
+        if (spacingCount > 0) {
+            items.push({ id: 'spacing-section', name: 'Spacing', icon: 'spacing', type: 'spacing', tokens: spacingTree, count: spacingCount });
+        }
 
-            if (tokenType === 'color') {
-                allColors[groupName] = groupTokens;
-            } else if (groupKey === 'space' || groupKey === 'spacing') {
-                items.push({ id: 'spacing-section', name: 'Spacing', icon: 'spacing', type: 'spacing', tokens: groupTokens, count });
-            } else if (groupKey === 'size' || groupKey === 'sizing') {
-                items.push({ id: 'sizes-section', name: 'Sizes', icon: 'sizes', type: 'sizing', tokens: groupTokens, count });
-            } else if (groupKey === 'radius') {
-                items.push({ id: 'radius-section', name: 'Radius', icon: 'radius', type: 'radius', tokens: groupTokens, count });
-            } else if (groupKey.includes('font') || groupKey.includes('line')) {
-                items.push({
-                    id: `typo-${groupKey}`,
-                    name: groupName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-                    icon: 'typography',
-                    type: 'typography',
-                    tokens: groupTokens,
-                    count
-                });
-            }
-        });
+        const sizingCount = findAllTokens(sizingTree as NestedTokens).length;
+        if (sizingCount > 0) {
+            items.push({ id: 'sizes-section', name: 'Sizes', icon: 'sizes', type: 'sizing', tokens: sizingTree, count: sizingCount });
+        }
 
-        if (Object.keys(allColors).length > 0) {
-            items.unshift({ id: 'colors-section', name: 'Colors', icon: 'colors', type: 'colors', tokens: allColors, count: Object.keys(allColors).length });
+        const radiusCount = findAllTokens(radiusTree as NestedTokens).length;
+        if (radiusCount > 0) {
+            items.push({ id: 'radius-section', name: 'Radius', icon: 'radius', type: 'radius', tokens: radiusTree, count: radiusCount });
+        }
+
+        const typographyCount = findAllTokens(typographyTree as NestedTokens).length;
+        if (typographyCount > 0) {
+            items.push({ id: 'typography-section', name: 'Typography', icon: 'typography', type: 'typography', tokens: typographyTree, count: typographyCount });
         }
 
         return items;
@@ -228,7 +350,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
-                                <TypographyDisplay tokens={section.tokens} familyName={section.id.replace('typo-', '')} />
+                                <TypographyDisplay tokens={section.tokens} />
                             </div>
                         )}
                     </React.Fragment>
@@ -238,12 +360,10 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
     );
 }
 
-function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; familyName: string }) {
+function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
     const [copiedValue, setCopiedValue] = useState<string | null>(null);
 
-    const entries = Object.entries(tokens).filter(([_, value]) =>
-        value && typeof value === 'object' && 'value' in value && 'type' in value
-    );
+    const entries = findAllTokens(tokens).filter(({ path, token }) => normalizeTokenKind(token.type, path.split('.')) === 'typography');
 
     const showToast = (value: string) => {
         setCopiedValue(value);
@@ -255,15 +375,17 @@ function TypographyDisplay({ tokens, familyName }: { tokens: NestedTokens; famil
     return (
         <>
             <div className="ftd-token-grid">
-                {entries.map(([name, token]: [string, any]) => {
-                    const cssVar = `--${familyName}-${name}`;
+                {entries.map(({ path, token }) => {
+                    const name = path;
+                    const cssVar = toCssVariable(path);
                     const varValue = `var(${cssVar})`;
-                    const isLineHeight = familyName.toLowerCase().includes('line');
-                    const isFontSize = familyName.toLowerCase().includes('size') || familyName.toLowerCase().includes('font');
+                    const lowerName = name.toLowerCase();
+                    const isLineHeight = lowerName.includes('line');
+                    const isFontSize = lowerName.includes('size') || lowerName.includes('font');
 
                     return (
                         <div
-                            key={name}
+                            key={path}
                             className="ftd-display-card ftd-clickable-card"
                             data-token-name={name}
                             onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}

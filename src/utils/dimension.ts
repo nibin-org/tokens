@@ -7,19 +7,17 @@ import { findAllTokens, toCssVariable, parseNumericValue } from './core';
 function parseDimensionTokens<T>(
   tokens: NestedTokens, 
   type: string, 
-  prefix: string,
   mapFn: (name: string, value: string, cssVar: string, numeric: number) => T
 ): T[] {
   const allTokens = findAllTokens(tokens);
   return allTokens
     .filter(t => t.token.type === type || t.token.type === 'dimension')
     .map(({ path, token }) => {
-      const cleanName = path.replace(new RegExp(`^${prefix}-`, 'i'), '');
       const value = typeof token.value === 'string' ? token.value : String(token.value);
       return mapFn(
-        cleanName,
+        path,
         value,
-        toCssVariable(path, prefix),
+        toCssVariable(path),
         parseNumericValue(value)
       );
     });
@@ -32,7 +30,6 @@ export function parseSpacingTokens(tokens: NestedTokens): ParsedSpacingToken[] {
   const result = parseDimensionTokens<ParsedSpacingToken>(
     tokens, 
     'spacing', 
-    'space',
     (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
   );
   return result.sort((a, b) => a.numericValue - b.numericValue);
@@ -45,7 +42,6 @@ export function parseRadiusTokens(tokens: NestedTokens): ParsedRadiusToken[] {
   const result = parseDimensionTokens<ParsedRadiusToken>(
     tokens, 
     'borderRadius', 
-    'radius',
     (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
   );
   return result.sort((a, b) => a.numericValue - b.numericValue);
@@ -58,7 +54,6 @@ export function parseSizeTokens(tokens: NestedTokens): ParsedSizeToken[] {
   const result = parseDimensionTokens<ParsedSizeToken>(
     tokens, 
     'sizing', 
-    'size',
     (name, value, cssVariable, numericValue) => ({ name, value, cssVariable, numericValue })
   );
   return result.sort((a, b) => a.numericValue - b.numericValue);

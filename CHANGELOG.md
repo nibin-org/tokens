@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo: Updated to show how to load and pass custom fonts.
 - Root `npm run dev` now runs postbuild on each successful watch rebuild, so `dist/styles.css` stays in sync for local-linked consumers.
 - Demo `basePath`/`assetPrefix` are now enabled only for production builds (`/tokvista`), while local dev uses root paths.
+- TokenDocumentation now includes an **All Tokens** tab so arbitrary JSON token structures are visible even without `Foundation/Value` or `Semantic/Value` sections.
 
 ### Fixed
 - CLI shutdown now exits reliably on `Ctrl+C`/`SIGTERM` by closing active connections and forcing socket cleanup on timeout.

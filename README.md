@@ -24,6 +24,7 @@ Design token documentation is often static and hard to scan. **Tokvista** gives 
 - Instant search with `Cmd+K` / `Ctrl+K`
 - Copy-ready CSS variables and resolved values
 - Semantic + component token views with aliases resolved
+- Generic **All Tokens** view for non-standard JSON structures
 - Built-in dark mode
 - Interactive playground for previews
 - Two usage modes: zero-setup CLI and React component library
@@ -68,6 +69,90 @@ export default function DesignSystem() {
 - `--help` / `-h` - Show help
 - `Ctrl+C` - Stop the local server
 
+### Try with a Sample `tokens.json`
+
+You can copy this into a local `tokens.json` file and run Tokvista immediately:
+
+```json
+{
+  "Foundation/Value": {
+    "base": {
+      "color": {
+        "blue": {
+          "500": { "value": "#2563EB", "type": "color" },
+          "600": { "value": "#1D4ED8", "type": "color" }
+        },
+        "gray": {
+          "100": { "value": "#F3F4F6", "type": "color" },
+          "900": { "value": "#111827", "type": "color" }
+        }
+      },
+      "space": {
+        "xs": { "value": "4px", "type": "spacing" },
+        "sm": { "value": "8px", "type": "spacing" },
+        "md": { "value": "16px", "type": "spacing" }
+      },
+      "size": {
+        "md": { "value": "40px", "type": "sizing" },
+        "lg": { "value": "48px", "type": "sizing" }
+      },
+      "radius": {
+        "sm": { "value": "6px", "type": "borderRadius" },
+        "md": { "value": "10px", "type": "borderRadius" }
+      },
+      "font-size": {
+        "sm": { "value": "12px", "type": "fontSize" },
+        "md": { "value": "14px", "type": "fontSize" }
+      }
+    }
+  },
+  "Semantic/Value": {
+    "fill": {
+      "primary": { "value": "{base.color.blue.500}", "type": "color" },
+      "surface": { "value": "{base.color.gray.100}", "type": "color" }
+    },
+    "stroke": {
+      "primary": { "value": "{base.color.blue.600}", "type": "color" }
+    },
+    "text": {
+      "primary": { "value": "{base.color.gray.900}", "type": "color" },
+      "inverse": { "value": "#FFFFFF", "type": "color" }
+    }
+  },
+  "Components/Mode 1": {
+    "button": {
+      "Primary": {
+        "fill": { "value": "#2563EB", "type": "color" },
+        "text": { "value": "#FFFFFF", "type": "color" },
+        "stroke": { "value": "#1D4ED8", "type": "color" }
+      },
+      "height": {
+        "md": { "value": "40px", "type": "dimension" }
+      },
+      "padding-x": {
+        "md": { "value": "16px", "type": "dimension" }
+      },
+      "padding-y": {
+        "md": { "value": "10px", "type": "dimension" }
+      },
+      "radius": {
+        "md": { "value": "10px", "type": "dimension" }
+      },
+      "font-size": {
+        "md": { "value": "14px", "type": "dimension" }
+      },
+      "line-height": {
+        "md": { "value": "20px", "type": "dimension" }
+      }
+    }
+  }
+}
+
+```
+
+If you're contributing in this repository, a larger real-world sample is available at `tokens.json`.
+For package users, run Tokvista with your own exported `tokens.json` file.
+
 
 ---
 
@@ -87,6 +172,9 @@ Export CSS, SCSS, JavaScript, or Tailwind config with high‑contrast syntax hig
 
 ### Playground
 Preview components using your tokens and custom class names.
+
+### All Tokens (Any JSON Shape)
+Even when your file does not follow `Foundation/Value` or `Semantic/Value`, Tokvista now shows every token path/value/type in the **All Tokens** tab.
 
 ---
 

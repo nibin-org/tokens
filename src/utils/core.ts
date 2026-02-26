@@ -25,7 +25,12 @@ export function parseNumericValue(value: string): number {
  * Convert a token path to a CSS variable name
  */
 export function toCssVariable(path: string, prefix: string = ''): string {
-  const cleanPath = path.replace(/\//g, '-').replace(/\./g, '-').replace(/\s+/g, '-').toLowerCase();
+  const cleanPath = path
+    .replace(/\//g, '-')
+    .replace(/\./g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
   
   // Foundation colors always use --base-
   if (prefix === 'base') {

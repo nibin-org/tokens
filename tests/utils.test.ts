@@ -34,6 +34,7 @@ describe('Core Utils', () => {
             expect(toCssVariable('blue.50')).toBe('--blue-50');
             expect(toCssVariable('Brand Primary Color')).toBe('--brand-primary-color');
             expect(toCssVariable('spacing.md', 'ftd')).toBe('--ftd-spacing-md');
+            expect(toCssVariable('borderRadius.sm')).toBe('--border-radius-sm');
         });
     });
 
