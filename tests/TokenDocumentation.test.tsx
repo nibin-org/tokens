@@ -64,6 +64,42 @@ describe('TokenDocumentation Component', () => {
             }
         }
     };
+    const foundationWithSiblingGroups: any = {
+        "Foundation/Value": {
+            "base": {
+                "blue": {
+                    "500": { "value": "#2563EB", "type": "color" }
+                }
+            },
+            "spacing": {
+                "md": { "value": "16px", "type": "spacing" }
+            },
+            "sizing": {
+                "lg": { "value": "48px", "type": "sizing" }
+            },
+            "borderRadius": {
+                "sm": { "value": "6px", "type": "borderRadius" }
+            }
+        }
+    };
+    const typographyGroupedTokens: any = {
+        "Foundation/Value": {
+            "base": {
+                "blue": {
+                    "500": { "value": "#2563EB", "type": "color" }
+                }
+            },
+            "fontFamily": {
+                "sans": { "value": "'Inter', sans-serif", "type": "fontFamilies" }
+            },
+            "fontSize": {
+                "md": { "value": "16px", "type": "fontSizes" }
+            },
+            "fontWeight": {
+                "semibold": { "value": "600", "type": "fontWeights" }
+            }
+        }
+    };
 
     it('should render the title and subtitle', () => {
         render(
@@ -116,6 +152,24 @@ describe('TokenDocumentation Component', () => {
         expect(screen.getByText('Spacing Scale')).toBeInTheDocument();
         expect(screen.getByText('Size Scale')).toBeInTheDocument();
         expect(screen.getByText('Border Radius')).toBeInTheDocument();
+    });
+
+    it('should render sibling foundation groups when base exists', async () => {
+        render(<TokenDocumentation tokens={foundationWithSiblingGroups} />);
+
+        expect(await screen.findByText('Base Colors')).toBeInTheDocument();
+        expect(screen.getByText('Spacing Scale')).toBeInTheDocument();
+        expect(screen.getByText('Size Scale')).toBeInTheDocument();
+        expect(screen.getByText('Border Radius')).toBeInTheDocument();
+    });
+
+    it('should group typography tokens by top-level token names', async () => {
+        render(<TokenDocumentation tokens={typographyGroupedTokens} />);
+
+        expect(await screen.findByRole('heading', { name: 'Typography' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'fontFamily' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'fontSize' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'fontWeight' })).toBeInTheDocument();
     });
 
     it('should toggle dark mode theme', () => {

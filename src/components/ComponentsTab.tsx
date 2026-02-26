@@ -5,6 +5,7 @@ import { Icon, type IconName } from './Icon';
 import { toCssVariable, resolveTokenValue } from '../utils/core';
 import { getContrastColor } from '../utils/color';
 import { highlightCode } from '../utils/highlighter';
+import { copyToClipboard } from '../utils/ui';
 
 interface ComponentsTabProps {
     components: Record<string, ComponentData>;
@@ -128,7 +129,7 @@ function formatDisplayName(name: string): string {
 type SingleToken = { value: string; type: string };
 
 function isSingleToken(obj: any): obj is SingleToken {
-    return !!obj && typeof obj === 'object' && obj.hasOwnProperty('value') && obj.hasOwnProperty('type');
+    return !!obj && typeof obj === 'object' && 'value' in obj && 'type' in obj;
 }
 
 function isTokenGroup(obj: any): boolean {
@@ -504,7 +505,6 @@ const renderVariantPreview = (
     const backgroundColor = fillToken ? getResolvedValue(fillToken.value, tokenMap) : 'transparent';
     const borderColor = strokeToken ? getResolvedValue(strokeToken.value, tokenMap) : 'transparent';
     const textColor = textToken ? getResolvedValue(textToken.value, tokenMap) : 'var(--ftd-text-main)';
-    const hasFocus = false;
     const heightValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'height', previewSize) : null;
     const fontSizeValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'font-size', previewSize) : null;
     const lineHeightValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'line-height', previewSize) : null;
@@ -512,7 +512,7 @@ const renderVariantPreview = (
     const paddingXValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'padding-x', previewSize) : null;
     const paddingYValue = isButtonComponent ? getButtonDimensionValue(dimensions, tokenMap, 'padding-y', previewSize) : null;
     const paddingValue = paddingXValue && paddingYValue ? `${paddingYValue} ${paddingXValue}` : undefined;
-    const isDisabled = false;
+
 
     return (
         <div className="ftd-variant-preview">
@@ -529,10 +529,7 @@ const renderVariantPreview = (
                     height: heightValue || undefined,
                     minHeight: heightValue || undefined,
                     padding: paddingValue,
-                    outline: hasFocus ? `2px solid ${borderColor}` : undefined,
-                    outlineOffset: hasFocus ? '2px' : undefined,
-                    opacity: isDisabled ? 0.7 : 1,
-                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                 }}
             >
                 Button
@@ -1139,11 +1136,16 @@ function VariantCodeBlock({ code, label }: { code: ButtonCode; label?: string })
                 </div>
                 <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                         if (!snippet) return;
-                        navigator.clipboard.writeText(snippet);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
+                        try {
+                            const success = await copyToClipboard(snippet);
+                            if (!success) return;
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                        } catch {
+                            // Clipboard access denied
+                        }
                     }}
                     className="ftd-playground-copy-btn"
                 >

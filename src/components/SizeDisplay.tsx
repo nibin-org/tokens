@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { SizeDisplayProps, ParsedSizeToken } from '../types';
 import { parseSizeTokens } from '../utils/dimension';
 import { copyToClipboard } from '../utils/ui';
@@ -11,22 +12,34 @@ import { Icon } from './Icon';
  * Shows vertical bars with proportional heights and horizontal bars
  */
 export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
-    const [copiedValue, setCopiedValue] = useState<string | null>(null);
+    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
+    const toastIdRef = useRef(0);
+    const toastTimerRef = useRef<number | null>(null);
 
     const sizeTokens = parseSizeTokens(tokens);
-    const maxValue = Math.max(...sizeTokens.map(t => t.numericValue), 1);
 
     const showToast = useCallback((value: string) => {
-        setCopiedValue(value);
-        setTimeout(() => setCopiedValue(null), 2000);
+        const id = ++toastIdRef.current;
+        setCopiedToast({ id, value });
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = window.setTimeout(() => {
+            setCopiedToast((current) => (current && current.id === id ? null : current));
+            toastTimerRef.current = null;
+        }, 2000);
     }, []);
 
-    const handleCopy = useCallback(async (token: ParsedSizeToken) => {
-        const success = await copyToClipboard(token.value);
-        if (success) {
-            showToast(token.value);
+    useEffect(() => () => {
+        if (toastTimerRef.current !== null) {
+            window.clearTimeout(toastTimerRef.current);
         }
-        onTokenClick?.(token);
+    }, []);
+
+    const handleCopy = useCallback(async (value: string, token?: ParsedSizeToken) => {
+        const success = await copyToClipboard(value);
+        if (success) {
+            showToast(value);
+        }
+        if (token) onTokenClick?.(token);
     }, [onTokenClick, showToast]);
 
     if (sizeTokens.length === 0) {
@@ -40,9 +53,9 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
     }
 
     return (
-            <div className="ftd-section">
-                <div className="ftd-section-header">
-                    <div className="ftd-section-icon"><Icon name="sizes" /></div>
+        <div className="ftd-section">
+            <div className="ftd-section-header">
+                <div className="ftd-section-icon"><Icon name="sizes" /></div>
                 <h2 className="ftd-section-title">Size Scale</h2>
                 <span className="ftd-section-count">{sizeTokens.length} tokens</span>
             </div>
@@ -55,7 +68,7 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
                             key={token.name}
                             className="ftd-display-card ftd-clickable-card"
                             data-token-name={token.name}
-                            onClick={() => copyToClipboard(varValue).then(() => showToast(varValue))}
+                            onClick={() => void handleCopy(varValue, token)}
                             title={`Click to copy: ${varValue}`}
                         >
                             <div className="ftd-token-preview-container">
@@ -71,10 +84,22 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
                             </div>
                             <p className="ftd-token-card-label">{token.name}</p>
                             <div className="ftd-token-values-row">
-                                <span className="ftd-token-css-var">
+                                <span
+                                    className="ftd-token-css-var"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(token.cssVariable, token);
+                                    }}
+                                >
                                     {token.cssVariable}
                                 </span>
-                                <span className="ftd-token-hex">
+                                <span
+                                    className="ftd-token-hex"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(token.value, token);
+                                    }}
+                                >
                                     {token.value}
                                 </span>
                             </div>
@@ -84,19 +109,23 @@ export function SizeDisplay({ tokens, onTokenClick }: SizeDisplayProps) {
             </div>
 
             {/* Premium Copy Toast */}
-            {copiedValue && (
-                <div className="ftd-copied-toast">
-                    <div className="ftd-toast-icon">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                    <div className="ftd-toast-content">
-                        <span className="ftd-toast-label">Copied</span>
-                        <span className="ftd-toast-value">{copiedValue}</span>
-                    </div>
-                </div>
-            )}
+            {copiedToast &&
+                (typeof document !== 'undefined'
+                    ? createPortal(
+                        <div key={copiedToast.id} className="ftd-copied-toast">
+                            <div className="ftd-toast-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div className="ftd-toast-content">
+                                <span className="ftd-toast-label">Copied</span>
+                                <span className="ftd-toast-value">{copiedToast.value}</span>
+                            </div>
+                        </div>,
+                        document.body
+                    )
+                    : null)}
         </div>
     );
 }

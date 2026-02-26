@@ -1,5 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
-import { createTokenMap, resolveTokenValue } from './core';
+import { createTokenMap, resolveTokenValue, deepMergeRecords, getFoundationTokenTree } from './core';
 
 export interface SearchableToken {
   id: string;
@@ -15,6 +15,25 @@ export interface SearchResult {
   token: SearchableToken;
   score: number;
   matches: string[];
+}
+
+type TokenLike = {
+  value: string | number;
+  type?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTokenLike(value: unknown): value is TokenLike {
+  return isRecord(value) && 'value' in value;
+}
+
+function normalizeColorPath(path: string[]): string[] {
+  const wrappers = new Set(['color', 'colors', 'palette', 'palettes', 'base', 'foundation', 'value']);
+  const filtered = path.filter(part => !wrappers.has(part.toLowerCase()));
+  return filtered.length > 0 ? filtered : path;
 }
 
 /**
@@ -80,31 +99,47 @@ function fuzzyMatch(query: string, text: string): { score: number; matches: bool
  */
 function indexFoundationTokens(baseTokens: NestedTokens, tokenMap: Record<string, string>): SearchableToken[] {
   const tokens: SearchableToken[] = [];
-  
-  Object.entries(baseTokens).forEach(([familyName, family]) => {
-    if (typeof family === 'object' && family !== null && !('value' in family)) {
-      // It's a nested object (like colors, spacing, etc.)
-      Object.entries(family).forEach(([tokenName, tokenValue]) => {
-        if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
-          const value = String(tokenValue.value);
-          const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => familyName.toLowerCase().includes(k));
-          const cssVar = isSpatial ? `--${familyName}-${tokenName}` : `--base-${familyName}-${tokenName}`;
-          
-          const type = determineTokenType(familyName);
-          const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
-          tokens.push({
-            id: `foundation-${familyName}-${tokenName}`,
-            name: `${familyName}-${tokenName}`,
-            value,
-            cssVariable: cssVar,
-            type,
-            category: 'foundation',
-            preview,
-          });
-        }
-      });
+
+  const walk = (node: unknown, path: string[] = []) => {
+    if (!isRecord(node)) return;
+
+    if (isTokenLike(node) && node.value !== null) {
+      const pathJoined = path.join('-');
+      const rawType = determineTokenType(pathJoined, node.type);
+      const value = String(node.value);
+
+      if (rawType === 'color') {
+        const colorPath = normalizeColorPath(path);
+        const name = colorPath.join('-');
+        tokens.push({
+          id: `foundation-${name}`,
+          name,
+          value,
+          cssVariable: `--base-${name}`,
+          type: 'color',
+          category: 'foundation',
+          preview: resolveTokenValue(value, tokenMap),
+        });
+      } else {
+        tokens.push({
+          id: `foundation-${pathJoined}`,
+          name: pathJoined,
+          value,
+          cssVariable: `--${pathJoined}`,
+          type: rawType,
+          category: 'foundation',
+          preview: value,
+        });
+      }
+      return;
     }
-  });
+
+    Object.entries(node).forEach(([key, value]) => {
+      walk(value, [...path, key]);
+    });
+  };
+
+  walk(baseTokens);
   
   return tokens;
 }
@@ -118,23 +153,30 @@ function indexSemanticTokens(semanticTokens: Record<string, NestedTokens>, token
   ['fill', 'stroke', 'text'].forEach(category => {
     const categoryTokens = semanticTokens[category];
     if (!categoryTokens) return;
-    
-    Object.entries(categoryTokens).forEach(([tokenName, tokenValue]) => {
-      if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
-        const value = String(tokenValue.value);
-        const cssVar = `--${category}-${tokenName}`;
-        
+
+    const walk = (node: unknown, path: string[] = []) => {
+      if (!isRecord(node)) return;
+      if (isTokenLike(node) && node.value !== null) {
+        const suffix = path.join('-');
+        const name = suffix ? `${category}-${suffix}` : category;
+        const value = String(node.value);
         tokens.push({
-          id: `semantic-${category}-${tokenName}`,
-          name: `${category}-${tokenName}`,
+          id: `semantic-${name}`,
+          name,
           value,
-          cssVariable: cssVar,
+          cssVariable: `--${name}`,
           type: 'color',
           category: 'semantic',
           preview: resolveTokenValue(value, tokenMap),
         });
+        return;
       }
-    });
+      Object.entries(node).forEach(([key, value]) => {
+        walk(value, [...path, key]);
+      });
+    };
+
+    walk(categoryTokens);
   });
   
   return tokens;
@@ -147,30 +189,34 @@ function indexComponentTokens(components: Record<string, any>, tokenMap: Record<
   const tokens: SearchableToken[] = [];
   
   Object.entries(components).forEach(([componentName, component]) => {
-    if (typeof component === 'object' && component !== null) {
-      Object.entries(component).forEach(([dimensionName, dimension]) => {
-        if (typeof dimension === 'object' && dimension !== null) {
-          Object.entries(dimension).forEach(([variantName, tokenValue]) => {
-            if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue && tokenValue.value !== null) {
-              const value = String(tokenValue.value);
-              const cssVar = `--${componentName}-${dimensionName}-${variantName}`;
-              
-              const type = determineTokenType(dimensionName);
-              const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
-              tokens.push({
-                id: `component-${componentName}-${dimensionName}-${variantName}`,
-                name: `${componentName} ${dimensionName} ${variantName}`,
-                value,
-                cssVariable: cssVar,
-                type,
-                category: 'component',
-                preview,
-              });
-            }
-          });
-        }
+    if (!isRecord(component)) return;
+
+    const walk = (node: unknown, path: string[] = []) => {
+      if (!isRecord(node)) return;
+
+      if (isTokenLike(node) && node.value !== null) {
+        const suffix = path.join('-');
+        const value = String(node.value);
+        const type = determineTokenType(suffix, node.type);
+        const preview = type === 'color' ? resolveTokenValue(value, tokenMap) : value;
+        tokens.push({
+          id: `component-${componentName}-${suffix}`,
+          name: `${componentName} ${path.join(' ')}`,
+          value,
+          cssVariable: `--${componentName}-${suffix}`,
+          type,
+          category: 'component',
+          preview,
+        });
+        return;
+      }
+
+      Object.entries(node).forEach(([key, value]) => {
+        walk(value, [...path, key]);
       });
-    }
+    };
+
+    walk(component);
   });
   
   return tokens;
@@ -179,9 +225,16 @@ function indexComponentTokens(components: Record<string, any>, tokenMap: Record<
 /**
  * Determine token type from family/dimension name
  */
-function determineTokenType(name: string): SearchableToken['type'] {
+function determineTokenType(name: string, tokenType?: string): SearchableToken['type'] {
   const nameLower = name.toLowerCase();
-  
+  const rawType = String(tokenType || '').toLowerCase();
+
+  if (rawType === 'color') return 'color';
+  if (rawType === 'spacing') return 'spacing';
+  if (rawType === 'sizing' || rawType === 'size') return 'size';
+  if (rawType === 'borderradius' || rawType === 'radius') return 'radius';
+  if (rawType.includes('font') || rawType.includes('line')) return 'typography';
+
   if (nameLower.includes('color') || nameLower.includes('fill') || nameLower.includes('stroke') ||
       ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'cyan', 'gray', 'slate', 'teal', 'pink', 'white', 'black', 'coolgray'].some(c => nameLower.includes(c))) {
     return 'color';
@@ -210,18 +263,29 @@ export function indexTokens(tokens: FigmaTokens): SearchableToken[] {
   const tokenMap = createTokenMap(tokens);
   
   // Index foundation tokens
-  if (tokens['Foundation/Value']?.base) {
-    searchableTokens.push(...indexFoundationTokens(tokens['Foundation/Value'].base, tokenMap));
+  const foundationSet = getFoundationTokenTree(tokens);
+  if (Object.keys(foundationSet).length > 0) {
+    searchableTokens.push(...indexFoundationTokens(foundationSet, tokenMap));
   }
   
   // Index semantic tokens
-  if (tokens['Semantic/Value']) {
-    searchableTokens.push(...indexSemanticTokens(tokens['Semantic/Value'], tokenMap));
+  const semanticSet = tokens['Semantic/Value'] as any;
+  if (semanticSet) {
+    searchableTokens.push(...indexSemanticTokens(semanticSet as Record<string, NestedTokens>, tokenMap));
   }
   
-  // Index component tokens
-  if (tokens['Components/Mode 1']) {
-    searchableTokens.push(...indexComponentTokens(tokens['Components/Mode 1'], tokenMap));
+  // Index component tokens — merge all Components/* sets dynamically
+  const mergedComponents = Object.entries(tokens)
+    .filter(([key]) => key.startsWith('Components/'))
+    .reduce((acc, [, val]) => {
+      if (val && typeof val === 'object') {
+        return deepMergeRecords(acc, val as Record<string, unknown>) as Record<string, any>;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+
+  if (Object.keys(mergedComponents).length > 0) {
+    searchableTokens.push(...indexComponentTokens(mergedComponents, tokenMap));
   }
   
   return searchableTokens;

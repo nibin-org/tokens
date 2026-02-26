@@ -70,7 +70,7 @@ export interface FigmaTokens {
   $metadata?: {
     tokenSetOrder?: string[];
   };
-  [key: string]: any; // Allow generic folder names
+  [key: string]: unknown; // Allow generic folder names like 'Foundation/Value', 'Semantic/Value', etc.
 }
 
 // Component props

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../src/utils/exportUtils';
+import { generateCSS, generateSCSS, generateJS, generateTailwind, getFlattenedTokens } from '../src/utils/exportUtils';
 import { FigmaTokens } from '../src/types';
 
 describe('Export Utils', () => {
@@ -17,6 +17,45 @@ describe('Export Utils', () => {
         "Semantic/Value": {
             "fill": {
                 "primary": { "value": "{base.blue.50}", "type": "color" }
+            }
+        }
+    };
+
+    const nestedAndMergedTokens: any = {
+        "Foundation/Value": {
+            "base": {
+                "color": {
+                    "blue": {
+                        "500": { "value": "#2563EB", "type": "color" }
+                    }
+                }
+            }
+        },
+        "Components/Mode 1": {
+            "button": {
+                "Primary": {
+                    "base": { "value": "#0EA5E9", "type": "color" }
+                }
+            }
+        },
+        "Components/Mode 2": {
+            "button": {
+                "height": {
+                    "md": { "value": "40px", "type": "dimension" }
+                }
+            }
+        }
+    };
+
+    const foundationWithSiblingGroups: any = {
+        "Foundation/Value": {
+            "base": {
+                "blue": {
+                    "500": { "value": "#2563EB", "type": "color" }
+                }
+            },
+            "spacing": {
+                "md": { "value": "16px", "type": "spacing" }
             }
         }
     };
@@ -56,6 +95,31 @@ describe('Export Utils', () => {
             expect(js).toContain('export const tokens = {');
             expect(js).toContain('"base-blue-50": "#3b82f6"');
             expect(js).toContain('"fill-primary": "{base.blue.50}"'); // Raw for now
+        });
+    });
+
+    describe('regressions', () => {
+        it('should flatten nested foundation color tokens', () => {
+            const flattened = getFlattenedTokens(nestedAndMergedTokens);
+            expect(flattened.find(t => t.name === 'base-blue-500')).toBeDefined();
+            expect(flattened.find(t => t.cssVariable === '--base-blue-500')).toBeDefined();
+        });
+
+        it('should deep merge component sets without losing same component keys', () => {
+            const css = generateCSS(nestedAndMergedTokens);
+            expect(css).toContain('--button-Primary-base: #0EA5E9;');
+            expect(css).toContain('--button-height-md: 40px;');
+        });
+
+        it('should respect token.type for component color classification', () => {
+            const tailwind = generateTailwind(nestedAndMergedTokens);
+            expect(tailwind).toContain('"button-Primary-base": "var(--button-Primary-base)"');
+        });
+
+        it('should include foundation siblings when base exists', () => {
+            const flattened = getFlattenedTokens(foundationWithSiblingGroups);
+            expect(flattened.find(t => t.name === 'base-blue-500')).toBeDefined();
+            expect(flattened.find(t => t.name === 'spacing-md')).toBeDefined();
         });
     });
 });

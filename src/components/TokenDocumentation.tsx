@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { TokenDocumentationProps, FigmaTokens, NestedTokens, VariantTokens, DimensionGroup } from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
@@ -9,7 +10,8 @@ import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
 import { ResetModal } from './ResetModal';
 import { PlaygroundTab, type PlaygroundConfig } from './PlaygroundTab';
-import { createTokenMap, resolveTokenValue, findAllTokens, toCssVariable } from '../utils/core';
+import { createTokenMap, resolveTokenValue, findAllTokens, toCssVariable, deepMergeRecords, getFoundationTokenTree } from '../utils/core';
+import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 
 type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
@@ -39,10 +41,12 @@ export function TokenDocumentation({
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
     const [isMounted, setIsMounted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
-    const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [copiedToken, setCopiedToken] = useState<{ id: number; value: string } | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
     const [resetModalOpen, setResetModalOpen] = useState(false);
+    const copiedToastIdRef = useRef(0);
+    const copiedToastTimerRef = useRef<number | null>(null);
 
     // Default configuration
     const defaultPlaygroundConfig: PlaygroundConfig = {
@@ -104,7 +108,7 @@ export function TokenDocumentation({
 
     // Load saved states on mount (Client-side only)
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         setIsMounted(true);
         if (typeof window !== 'undefined') {
             try {
@@ -221,6 +225,7 @@ export function TokenDocumentation({
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
+        if (!showSearch) return;
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
@@ -230,7 +235,11 @@ export function TokenDocumentation({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [showSearch]);
+
+    useEffect(() => {
+        if (!showSearch && searchOpen) setSearchOpen(false);
+    }, [showSearch, searchOpen]);
 
     // Handle scrolling to and highlighting a specific token
     const handleScrollToToken = (tokenName: string, category: string, cssVariable?: string) => {
@@ -394,9 +403,7 @@ export function TokenDocumentation({
 
     // --- Extract the three main token sets ---
     const { foundationTokens, semanticTokens, componentTokens } = useMemo(() => {
-        const foundationData = (tokens as any)["Foundation/Value"] || {};
-        // Foundation tokens are nested under 'base', extract that level
-        const foundation = foundationData.base || foundationData;
+        const foundation = getFoundationTokenTree(tokens);
 
         const semantic = (tokens as any)["Semantic/Value"] || {};
 
@@ -406,10 +413,10 @@ export function TokenDocumentation({
             .reduce((acc, [key, val]) => {
                 // Merge all component sets
                 if (val && typeof val === 'object') {
-                    return { ...acc, ...val };
+                    return deepMergeRecords(acc, val as Record<string, unknown>);
                 }
                 return acc;
-            }, {});
+            }, {} as Record<string, unknown>);
 
         return {
             foundationTokens: foundation,
@@ -505,11 +512,27 @@ export function TokenDocumentation({
         return text;
     };
 
-    const handleCopy = (value: string, label: string) => {
-        navigator.clipboard.writeText(value);
-        setCopiedToken(formatCopiedLabel(label, value));
-        setTimeout(() => setCopiedToken(null), 2000);
+    const handleCopy = async (value: string, label: string) => {
+        try {
+            const success = await copyToClipboard(value);
+            if (!success) return;
+            const id = ++copiedToastIdRef.current;
+            setCopiedToken({ id, value: formatCopiedLabel(label, value) });
+            if (copiedToastTimerRef.current !== null) window.clearTimeout(copiedToastTimerRef.current);
+            copiedToastTimerRef.current = window.setTimeout(() => {
+                setCopiedToken((current) => (current && current.id === id ? null : current));
+                copiedToastTimerRef.current = null;
+            }, 2000);
+        } catch {
+            // Clipboard access denied — do not show toast
+        }
     };
+
+    useEffect(() => () => {
+        if (copiedToastTimerRef.current !== null) {
+            window.clearTimeout(copiedToastTimerRef.current);
+        }
+    }, []);
 
     const getResolvedColor = (variantTokens: VariantTokens, patterns: string[]) => {
         for (const pattern of patterns) {
@@ -595,19 +618,23 @@ export function TokenDocumentation({
             data-theme={isDarkMode ? 'dark' : 'light'}
             style={{ opacity: isMounted ? 1 : 0, ...fontOverrides }}
         >
-            {copiedToken && (
-                <div className="ftd-copied-toast" role="status" aria-live="polite">
-                    <div className="ftd-toast-icon">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                    <div className="ftd-toast-content">
-                        <span className="ftd-toast-label">Copied</span>
-                        <span className="ftd-toast-value">{copiedToken}</span>
-                    </div>
-                </div>
-            )}
+            {copiedToken &&
+                (typeof document !== 'undefined'
+                    ? createPortal(
+                        <div className="ftd-copied-toast" role="status" aria-live="polite" key={copiedToken.id}>
+                            <div className="ftd-toast-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div className="ftd-toast-content">
+                                <span className="ftd-toast-label">Copied</span>
+                                <span className="ftd-toast-value">{copiedToken.value}</span>
+                            </div>
+                        </div>,
+                        document.body
+                    )
+                    : null)}
 
             <div className="ftd-navbar-sticky">
                 <header className="ftd-header">
@@ -624,20 +651,22 @@ export function TokenDocumentation({
                             </svg>
                             <span>Export</span>
                         </button>
-                        <button
-                            className="ftd-search-button"
-                            onClick={() => setSearchOpen(true)}
-                            title="Search tokens (Cmd+K)"
-                            aria-label="Search tokens"
-                            type="button"
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                            <span>Search</span>
-                            <kbd className="ftd-search-shortcut">⌘K</kbd>
-                        </button>
+                        {showSearch && (
+                            <button
+                                className="ftd-search-button"
+                                onClick={() => setSearchOpen(true)}
+                                title="Search tokens (Cmd+K)"
+                                aria-label="Search tokens"
+                                type="button"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                <span>Search</span>
+                                <kbd className="ftd-search-shortcut">⌘K</kbd>
+                            </button>
+                        )}
                         <button
                             className="ftd-theme-toggle"
                             onClick={toggleTheme}
@@ -706,14 +735,16 @@ export function TokenDocumentation({
                 )}
             </div>
 
-            <SearchModal
-                isOpen={searchOpen}
-                onClose={() => setSearchOpen(false)}
-                tokens={tokens}
-                onTokenClick={onTokenClick}
-                onNavigateToTab={(tab) => setActiveTab(tab)}
-                onScrollToToken={handleScrollToToken}
-            />
+            {showSearch && (
+                <SearchModal
+                    isOpen={searchOpen}
+                    onClose={() => setSearchOpen(false)}
+                    tokens={tokens}
+                    onTokenClick={onTokenClick}
+                    onNavigateToTab={(tab) => setActiveTab(tab)}
+                    onScrollToToken={handleScrollToToken}
+                />
+            )}
 
             <ExportModal
                 isOpen={exportOpen}

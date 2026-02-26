@@ -16,6 +16,7 @@
 
 // Main component
 export { TokenDocumentation } from './components/TokenDocumentation';
+/** @deprecated Use TokenDocumentation instead */
 export { default as TokenDocumentationDefault } from './components/TokenDocumentation';
 
 // Individual components for custom layouts

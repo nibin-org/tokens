@@ -6,15 +6,16 @@ import { ColorDisplay } from './ColorDisplay';
 import { SpacingDisplay } from './SpacingDisplay';
 import { SizeDisplay } from './SizeDisplay';
 import { RadiusDisplay } from './RadiusDisplay';
-import { createTokenMap } from '../utils/core';
+import { createTokenMap, getFoundationTokenTree } from '../utils/core';
 
 /**
  * Spacing - Standalone component to display spacing tokens
  */
 export function Spacing({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     const spacingData = useMemo(() => {
-        const foundation = tokens["Foundation/Value"]?.base || tokens["Foundation/Value"] || tokens.global || tokens;
-        return foundation.spacing || foundation.space || {};
+        const foundation = getFoundationTokenTree(tokens);
+        const baseGroup = (foundation as any).base || {};
+        return (foundation as any).spacing || (foundation as any).space || baseGroup.spacing || baseGroup.space || {};
     }, [tokens]);
 
     return (
@@ -30,11 +31,13 @@ export function Spacing({ tokens, onTokenClick, title }: StandaloneTokenProps) {
  */
 export function Colors({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     const { base, fill, stroke, text } = useMemo(() => {
-        const foundation = tokens["Foundation/Value"]?.base || tokens["Foundation/Value"] || tokens.global || tokens;
-        const semantic = tokens["Semantic/Value"] || {};
+        const foundation = getFoundationTokenTree(tokens);
+        const baseGroup = (foundation as any).base || {};
+        const semantic = (tokens["Semantic/Value"] as any) || {};
+        const hasBaseGroup = typeof baseGroup === 'object' && baseGroup !== null && Object.keys(baseGroup).length > 0;
 
         return {
-            base: foundation.color || foundation.colors || {},
+            base: baseGroup.color || baseGroup.colors || (hasBaseGroup ? baseGroup : undefined) || (foundation as any).color || (foundation as any).colors || foundation || {},
             fill: semantic.fill || {},
             stroke: semantic.stroke || {},
             text: semantic.text || {}
@@ -63,8 +66,9 @@ export function Colors({ tokens, onTokenClick, title }: StandaloneTokenProps) {
  */
 export function Sizes({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     const sizingData = useMemo(() => {
-        const foundation = tokens["Foundation/Value"]?.base || tokens["Foundation/Value"] || tokens.global || tokens;
-        return foundation.sizing || foundation.size || {};
+        const foundation = getFoundationTokenTree(tokens);
+        const baseGroup = (foundation as any).base || {};
+        return (foundation as any).sizing || (foundation as any).size || baseGroup.sizing || baseGroup.size || {};
     }, [tokens]);
 
     return (
@@ -80,8 +84,9 @@ export function Sizes({ tokens, onTokenClick, title }: StandaloneTokenProps) {
  */
 export function Radius({ tokens, onTokenClick, title }: StandaloneTokenProps) {
     const radiusData = useMemo(() => {
-        const foundation = tokens["Foundation/Value"]?.base || tokens["Foundation/Value"] || tokens.global || tokens;
-        return foundation.borderRadius || foundation.radius || {};
+        const foundation = getFoundationTokenTree(tokens);
+        const baseGroup = (foundation as any).base || {};
+        return (foundation as any).borderRadius || (foundation as any).radius || baseGroup.borderRadius || baseGroup.radius || {};
     }, [tokens]);
 
     return (

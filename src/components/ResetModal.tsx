@@ -51,12 +51,14 @@ export function ResetModal({ isOpen, onClose, onConfirm }: ResetModalProps) {
 
                 <div className="ftd-export-footer">
                     <button
+                        type="button"
                         className="ftd-btn-secondary"
                         onClick={onClose}
                     >
                         Cancel
                     </button>
                     <button
+                        type="button"
                         className="ftd-btn-primary"
                         onClick={() => {
                             onConfirm();

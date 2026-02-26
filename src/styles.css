@@ -2209,7 +2209,32 @@ body {
 }
 
 /* Typography Display */
+.ftd-typography-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
 
+.ftd-typography-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ftd-typography-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ftd-border);
+}
+
+.ftd-typography-group-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ftd-text-main);
+}
 
 .ftd-typography-card:hover {
   transform: translateY(-2px);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { FigmaTokens } from '../types';
 import { indexTokens, searchTokens, highlightMatch, type SearchableToken, type SearchResult } from '../utils/searchUtils';
+import { copyToClipboard } from '../utils/ui';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -91,18 +92,9 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
         const fullCssVar = `var(${token.cssVariable})`;
 
         try {
-            if (navigator?.clipboard?.writeText) {
-                await navigator.clipboard.writeText(fullCssVar);
-            } else {
-                const textarea = document.createElement('textarea');
-                textarea.value = fullCssVar;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-            }
-        } catch (err) {
-            console.error('Failed to copy:', err);
+            await copyToClipboard(fullCssVar);
+        } catch {
+            // Clipboard access denied — continue with navigation regardless
         }
 
         // Navigate to the appropriate tab based on token category
@@ -202,7 +194,7 @@ export function SearchModal({ isOpen, onClose, tokens, onTokenClick, onNavigateT
                                 {group.category.charAt(0).toUpperCase() + group.category.slice(1)} · {group.type.charAt(0).toUpperCase() + group.type.slice(1)}
                                 <span className="ftd-search-count">{group.results.length}</span>
                             </div>
-                            {group.results.map((result, index) => {
+                            {group.results.map((result) => {
                                 const globalIndex = results.indexOf(result);
                                 const isSelected = globalIndex === selectedIndex;
 

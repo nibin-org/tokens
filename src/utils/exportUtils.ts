@@ -1,4 +1,5 @@
 import type { FigmaTokens, NestedTokens } from '../types';
+import { deepMergeRecords, getFoundationTokenTree } from './core';
 
 export interface ExportableToken {
   name: string;
@@ -6,6 +7,25 @@ export interface ExportableToken {
   cssVariable: string;
   type: string;
   category: string;
+}
+
+type TokenLike = {
+  value: string | number;
+  type?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTokenLike(value: unknown): value is TokenLike {
+  return isRecord(value) && 'value' in value;
+}
+
+function normalizeColorPath(path: string[]): string[] {
+  const wrappers = new Set(['color', 'colors', 'palette', 'palettes', 'base', 'foundation', 'value']);
+  const filtered = path.filter(part => !wrappers.has(part.toLowerCase()));
+  return filtered.length > 0 ? filtered : path;
 }
 
 /**
@@ -48,86 +68,111 @@ function formatTokenValue(value: string, format: 'css' | 'scss' | 'js'): string 
 export function getFlattenedTokens(tokens: FigmaTokens): ExportableToken[] {
   const flattened: ExportableToken[] = [];
 
-    const determineType = (name: string, tokenType?: string) => {
-      const n = name.toLowerCase();
-      const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => n.includes(k));
-      
-      if (tokenType === 'color' || (!isSpatial && (n.includes('color') || n.includes('fill') || n.includes('stroke') || !isSpatial))) return 'color';
-      if (n.includes('space') || n.includes('spacing')) return 'spacing';
-      if (n.includes('size')) return 'size';
-      if (n.includes('radius')) return 'radius';
-      if (n.includes('font') || n.includes('line-height') || n.includes('typography')) return 'typography';
-      return 'dimension';
-    };
+  const determineType = (name: string, tokenType?: string) => {
+    const n = name.toLowerCase();
+    const rawType = String(tokenType || '').toLowerCase();
+
+    if (rawType === 'color') return 'color';
+    if (rawType === 'spacing') return 'spacing';
+    if (rawType === 'sizing' || rawType === 'size') return 'size';
+    if (rawType === 'borderradius' || rawType === 'radius') return 'radius';
+    if (rawType.includes('font') || rawType.includes('line')) return 'typography';
+
+    if (n.includes('color') || n.includes('fill') || n.includes('stroke') || n.includes('text') || n.includes('bg')) return 'color';
+    if (n.includes('space') || n.includes('spacing') || n.includes('gap') || n.includes('padding') || n.includes('margin')) return 'spacing';
+    if (n.includes('size') || n.includes('width') || n.includes('height')) return 'size';
+    if (n.includes('radius') || n.includes('round')) return 'radius';
+    if (n.includes('font') || n.includes('line-height') || n.includes('typography') || n.includes('letter')) return 'typography';
+    return 'dimension';
+  };
+
+  const pushToken = (name: string, cssVariable: string, value: string, type: string, category: string) => {
+    flattened.push({ name, cssVariable, value, type, category });
+  };
 
   // 1. Foundation Tokens
-  if (tokens['Foundation/Value']?.base) {
-    const base = tokens['Foundation/Value'].base;
-    Object.entries(base).forEach(([familyName, family]: [string, any]) => {
-      if (typeof family === 'object' && family !== null) {
-        Object.entries(family).forEach(([tokenName, tokenValue]: [string, any]) => {
-          if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue) {
-            const tokenType = determineType(familyName, tokenValue.type);
-            const isSpatial = ['space', 'size', 'radius', 'line-height', 'border-width'].some(k => familyName.toLowerCase().includes(k));
-            const isColor = tokenType === 'color' || !isSpatial;
-            
-            flattened.push({
-              name: isColor ? `base-${familyName}-${tokenName}` : `${familyName}-${tokenName}`,
-              value: String(tokenValue.value),
-              cssVariable: isColor ? `--base-${familyName}-${tokenName}` : `--${familyName}-${tokenName}`,
-              type: tokenType,
-              category: 'Foundation',
-            });
-          }
-        });
+  const foundationRoot = getFoundationTokenTree(tokens);
+  const walkFoundation = (node: unknown, path: string[] = []) => {
+    if (!isRecord(node)) return;
+
+    if (isTokenLike(node) && node.value !== null) {
+      const joinedPath = path.join('-');
+      const tokenType = determineType(joinedPath, node.type);
+      const value = String(node.value);
+
+      if (tokenType === 'color') {
+        const colorPath = normalizeColorPath(path);
+        const colorName = colorPath.join('-');
+        pushToken(`base-${colorName}`, `--base-${colorName}`, value, tokenType, 'Foundation');
+      } else {
+        pushToken(joinedPath, `--${joinedPath}`, value, tokenType, 'Foundation');
       }
+      return;
+    }
+
+    Object.entries(node).forEach(([key, value]) => {
+      walkFoundation(value, [...path, key]);
     });
+  };
+
+  if (isRecord(foundationRoot)) {
+    walkFoundation(foundationRoot);
   }
 
   // 2. Semantic Tokens
-  if (tokens['Semantic/Value']) {
-    const semantic = tokens['Semantic/Value'];
+  const semanticSet = tokens['Semantic/Value'] as any;
+  if (semanticSet) {
+    const semantic = semanticSet;
     ['fill', 'stroke', 'text'].forEach(cat => {
       const group = semantic[cat];
-      if (group && typeof group === 'object') {
-        Object.entries(group).forEach(([tokenName, tokenValue]: [string, any]) => {
-          if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue) {
-            flattened.push({
-              name: `${cat}-${tokenName}`,
-              value: String(tokenValue.value),
-              cssVariable: `--${cat}-${tokenName}`,
-              type: 'color',
-              category: 'Semantic',
-            });
-          }
+      const walkSemantic = (node: unknown, path: string[] = []) => {
+        if (!isRecord(node)) return;
+        if (isTokenLike(node) && node.value !== null) {
+          const suffix = path.join('-');
+          const name = suffix ? `${cat}-${suffix}` : cat;
+          pushToken(name, `--${name}`, String(node.value), 'color', 'Semantic');
+          return;
+        }
+        Object.entries(node).forEach(([key, value]) => {
+          walkSemantic(value, [...path, key]);
         });
+      };
+      if (isRecord(group)) {
+        walkSemantic(group);
       }
     });
   }
 
-  // 3. Component Tokens
-  if (tokens['Components/Mode 1']) {
-    const components = tokens['Components/Mode 1'];
-    Object.entries(components).forEach(([compName, comp]: [string, any]) => {
-      if (typeof comp === 'object' && comp !== null) {
-        Object.entries(comp).forEach(([dimName, dim]: [string, any]) => {
-          if (typeof dim === 'object' && dim !== null) {
-            Object.entries(dim).forEach(([variantName, tokenValue]: [string, any]) => {
-              if (tokenValue && typeof tokenValue === 'object' && 'value' in tokenValue) {
-                flattened.push({
-                  name: `${compName}-${dimName}-${variantName}`,
-                  value: String(tokenValue.value),
-                  cssVariable: `--${compName}-${dimName}-${variantName}`,
-                  type: determineType(dimName),
-                  category: `Component (${compName})`,
-                });
-              }
-            });
-          }
-        });
+  // 3. Component Tokens — merge all Components/* sets dynamically
+  const mergedComponents = Object.entries(tokens)
+    .filter(([key]) => key.startsWith('Components/'))
+    .reduce((acc, [, val]) => {
+      if (val && typeof val === 'object') {
+        return deepMergeRecords(acc, val as Record<string, unknown>) as Record<string, any>;
       }
-    });
-  }
+      return acc;
+    }, {} as Record<string, any>);
+
+  Object.entries(mergedComponents).forEach(([compName, comp]: [string, any]) => {
+    if (!isRecord(comp)) return;
+
+    const walkComponent = (node: unknown, path: string[] = []) => {
+      if (!isRecord(node)) return;
+      if (isTokenLike(node) && node.value !== null) {
+        const suffix = path.join('-');
+        const type = determineType(suffix, node.type);
+        const tokenType = type === 'size' ? 'size' : type;
+        const name = suffix ? `${compName}-${suffix}` : compName;
+        pushToken(name, `--${name}`, String(node.value), tokenType, `Component (${compName})`);
+        return;
+      }
+      Object.entries(node).forEach(([key, value]) => {
+        walkComponent(value, [...path, key]);
+      });
+    };
+
+    walkComponent(comp);
+  });
 
   return flattened;
 }

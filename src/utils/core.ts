@@ -12,6 +12,10 @@ export function isTokenValue(obj: unknown): obj is TokenValue {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 /**
  * Parse a numeric value from a CSS dimension string
  */
@@ -38,6 +42,29 @@ export function toCssVariable(path: string, prefix: string = ''): string {
   }
   
   return prefix ? `--${prefix}-${cleanPath}` : `--${cleanPath}`;
+}
+
+/**
+ * Resolve the usable foundation tree without dropping sibling token groups.
+ * If Foundation/Value only contains a single "base" wrapper, unwrap it.
+ */
+export function getFoundationTokenTree(tokens: unknown): NestedTokens {
+  const source =
+    isRecord(tokens) && isRecord((tokens as Record<string, unknown>)['Foundation/Value'])
+      ? (tokens as Record<string, unknown>)['Foundation/Value']
+      : tokens;
+
+  if (!isRecord(source)) return {};
+
+  const keys = Object.keys(source).filter(key => !key.startsWith('$'));
+  if (keys.length === 1 && keys[0].toLowerCase() === 'base') {
+    const baseValue = source[keys[0]];
+    if (isRecord(baseValue)) {
+      return baseValue as NestedTokens;
+    }
+  }
+
+  return source as NestedTokens;
 }
 
 /**
@@ -149,4 +176,33 @@ export function detectTokenType(tokens: NestedTokens): 'color' | 'spacing' | 'si
   }
   
   return 'other';
+}
+
+/**
+ * Merge two nested records recursively.
+ * Token leaf objects (objects with a `value` key) are replaced, not merged.
+ */
+export function deepMergeRecords(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> {
+  Object.entries(source).forEach(([key, nextValue]) => {
+    const currentValue = target[key];
+    const currentIsObject = typeof currentValue === 'object' && currentValue !== null;
+    const nextIsObject = typeof nextValue === 'object' && nextValue !== null;
+    const currentIsTokenLeaf = currentIsObject && 'value' in (currentValue as Record<string, unknown>);
+    const nextIsTokenLeaf = nextIsObject && 'value' in (nextValue as Record<string, unknown>);
+
+    if (currentIsObject && nextIsObject && !currentIsTokenLeaf && !nextIsTokenLeaf) {
+      target[key] = deepMergeRecords(
+        currentValue as Record<string, unknown>,
+        nextValue as Record<string, unknown>
+      );
+      return;
+    }
+
+    target[key] = nextValue;
+  });
+
+  return target;
 }

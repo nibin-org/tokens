@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { FigmaTokens } from '../../types';
-import { getFlattenedTokens, ExportableToken } from '../../utils/exportUtils';
+import { getFlattenedTokens } from '../../utils/exportUtils';
 import { resolveTokenValue } from '../../utils/core';
 import { copyToClipboard } from '../../utils/ui';
 import { TokenSelect } from './TokenSelect';
@@ -24,28 +24,8 @@ export function ButtonPlayground({ tokens, tokenMap, config, setConfig, activeTa
     const [isActive, setIsActive] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    // Helper to find filtered tokens
-    const findTokensByType = (type: string, categoryPrefix?: string) => {
-        return allTokens.filter(t => {
-            const isTypeMatch = t.type === type;
-            const isCategoryMatch = categoryPrefix
-                ? t.name.startsWith(categoryPrefix) || t.name.includes(categoryPrefix)
-                : true;
-            return isTypeMatch && isCategoryMatch;
-        });
-    };
-
-    // Specific Semantic Filters using flat names
-    // Note: getFlattenedTokens categorizes them. We can also filter by name convention.
-    const fillTokens = useMemo(() => allTokens.filter(t => t.type === 'color' && (t.name.includes('fill') || t.name.includes('bg'))), [allTokens]);
-    const textTokens = useMemo(() => allTokens.filter(t => t.type === 'color' && t.name.includes('text') && !t.name.includes('stroke')), [allTokens]);
-    const strokeTokens = useMemo(() => allTokens.filter(t => t.type === 'color' && (t.name.includes('stroke') || t.name.includes('border'))), [allTokens]);
-
     // For dimensions, we often rely on types
     const radiusTokens = useMemo(() => allTokens.filter(t => t.type === 'radius'), [allTokens]);
-    const spacingTokens = useMemo(() => allTokens.filter(t => t.type === 'spacing'), [allTokens]);
-    const fontSizeTokens = useMemo(() => allTokens.filter(t => t.name.includes('font-size')), [allTokens]);
-    const lineHeightTokens = useMemo(() => allTokens.filter(t => t.name.includes('line-height')), [allTokens]);
 
     // Update config helper
     const updateConfig = (key: keyof typeof config, value: string | boolean) => {
@@ -267,10 +247,15 @@ ${iconScss}
         }
     }, [activeTab, cssCode, scssCode, tailwindCode]);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(codeSnippet);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleCopy = async () => {
+        try {
+            const success = await copyToClipboard(codeSnippet);
+            if (!success) return;
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard access denied
+        }
     };
 
     return (

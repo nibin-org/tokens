@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { ColorDisplayProps, ParsedColorToken, NestedTokens } from '../types';
 import { parseBaseColors, parseSemanticColors, getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
@@ -18,9 +19,11 @@ export function ColorDisplay({
     tokenMap: externalTokenMap,
     onColorClick,
 }: ColorDisplayProps) {
-    const [copiedValue, setCopiedValue] = useState<string | null>(null);
+    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const [activeSection, setActiveSection] = useState<string>('base-colors');
     const observer = useRef<IntersectionObserver | null>(null);
+    const toastIdRef = useRef(0);
+    const toastTimerRef = useRef<number | null>(null);
 
     // Build internal token map if external is not provided
     const tokenMap = useMemo(() => {
@@ -29,8 +32,19 @@ export function ColorDisplay({
     }, [externalTokenMap, baseColors, fillColors, strokeColors, textColors]);
 
     const showToast = useCallback((value: string) => {
-        setCopiedValue(value);
-        setTimeout(() => setCopiedValue(null), 2000);
+        const id = ++toastIdRef.current;
+        setCopiedToast({ id, value });
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = window.setTimeout(() => {
+            setCopiedToast((current) => (current && current.id === id ? null : current));
+            toastTimerRef.current = null;
+        }, 2000);
+    }, []);
+
+    useEffect(() => () => {
+        if (toastTimerRef.current !== null) {
+            window.clearTimeout(toastTimerRef.current);
+        }
     }, []);
 
     // Scroll Spy
@@ -134,7 +148,7 @@ export function ColorDisplay({
                                             >
                                                 <span className="ftd-color-shade-label">{shade.shade}</span>
                                                 <div className="ftd-shade-values">
-                                                    <span className="ftd-shade-css-var" onClick={() => copyToClipboard(shade.cssVariable).then(() => showToast(shade.cssVariable))}>
+                                                    <span className="ftd-shade-css-var" onClick={() => copyToClipboard(shade.cssVariable).then((success) => { if (success) showToast(shade.cssVariable); })}>
                                                         {shade.cssVariable}
                                                     </span>
                                                     <span className="ftd-shade-hex" onClick={() => handleCopy(shade)}>
@@ -178,19 +192,23 @@ export function ColorDisplay({
                     </div>
                 ))}
 
-                {copiedValue && (
-                    <div className="ftd-copied-toast">
-                        <div className="ftd-toast-icon">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <div className="ftd-toast-content">
-                            <span className="ftd-toast-label">Copied</span>
-                            <span className="ftd-toast-value">{copiedValue}</span>
-                        </div>
-                    </div>
-                )}
+                {copiedToast &&
+                    (typeof document !== 'undefined'
+                        ? createPortal(
+                            <div className="ftd-copied-toast" key={copiedToast.id}>
+                                <div className="ftd-toast-icon">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div className="ftd-toast-content">
+                                    <span className="ftd-toast-label">Copied</span>
+                                    <span className="ftd-toast-value">{copiedToast.value}</span>
+                                </div>
+                            </div>,
+                            document.body
+                        )
+                        : null)}
             </div>
         </div>
     );
@@ -209,7 +227,7 @@ function ColorCard({ color, onCopy, onCopyText }: { color: ParsedColorToken; onC
             <div className="ftd-token-info">
                 <p className="ftd-token-name">{color.name}</p>
                 <div className="ftd-token-values-row">
-                    <span className="ftd-token-css-var" onClick={() => copyToClipboard(color.cssVariable).then(() => onCopyText(color.cssVariable))}>
+                    <span className="ftd-token-css-var" onClick={() => copyToClipboard(color.cssVariable).then((success) => { if (success) onCopyText(color.cssVariable); })}>
                         {color.cssVariable}
                     </span>
                     <span className="ftd-token-hex" onClick={() => onCopy(color)}>

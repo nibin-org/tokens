@@ -76,6 +76,9 @@
     "name": "Nibin Kurian",
     "url": "https://www.linkedin.com/in/nibin-kurian"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "license": "MIT",
   "peerDependencies": {
     "react": ">=18.0.0",

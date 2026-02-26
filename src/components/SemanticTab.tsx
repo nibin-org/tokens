@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { NestedTokens, ParsedColorToken } from '../types';
 import { parseSemanticColors, getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
@@ -25,22 +26,39 @@ interface Section {
 export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps) {
     const rafId = useRef<number | null>(null);
     const pendingSectionId = useRef<string | null>(null);
-    const [copiedValue, setCopiedValue] = useState<string | null>(null);
+    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
+    const toastIdRef = useRef(0);
+    const toastTimerRef = useRef<number | null>(null);
 
     // Extract semantic color groups
     const fillColors = useMemo(() => tokens.fill ? parseSemanticColors(tokens.fill as NestedTokens, 'fill', tokenMap) : [], [tokens.fill, tokenMap]);
     const strokeColors = useMemo(() => tokens.stroke ? parseSemanticColors(tokens.stroke as NestedTokens, 'stroke', tokenMap) : [], [tokens.stroke, tokenMap]);
     const textColors = useMemo(() => tokens.text ? parseSemanticColors(tokens.text as NestedTokens, 'text', tokenMap) : [], [tokens.text, tokenMap]);
 
+    // Collect any non-standard semantic keys (e.g. 'background', 'border', 'icon')
+    const otherSections = useMemo<Section[]>(() => {
+        const known = new Set(['fill', 'stroke', 'text']);
+        return Object.keys(tokens)
+            .filter(k => !known.has(k))
+            .map(k => ({
+                id: `other-${k}-section`,
+                name: k.charAt(0).toUpperCase() + k.slice(1),
+                icon: 'fill' as const, // fallback icon
+                colors: parseSemanticColors(tokens[k] as NestedTokens, k, tokenMap),
+            }))
+            .filter(s => s.colors.length > 0);
+    }, [tokens, tokenMap]);
+
     const sections = useMemo<Section[]>(() => {
         const items: Section[] = [
             { id: 'fill-section', name: 'Fill', icon: 'fill', colors: fillColors },
             { id: 'stroke-section', name: 'Stroke', icon: 'stroke', colors: strokeColors },
             { id: 'text-section', name: 'Text', icon: 'text', colors: textColors },
+            ...otherSections,
         ];
         return items.filter(section => section.colors.length > 0);
-    }, [fillColors, strokeColors, textColors]);
+    }, [fillColors, strokeColors, textColors, otherSections]);
 
     // Initialize active section
     useEffect(() => {
@@ -131,9 +149,20 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
     };
 
     const showToast = (value: string) => {
-        setCopiedValue(value);
-        setTimeout(() => setCopiedValue(null), 2000);
+        const id = ++toastIdRef.current;
+        setCopiedToast({ id, value });
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = window.setTimeout(() => {
+            setCopiedToast((current) => (current && current.id === id ? null : current));
+            toastTimerRef.current = null;
+        }, 2000);
     };
+
+    useEffect(() => () => {
+        if (toastTimerRef.current !== null) {
+            window.clearTimeout(toastTimerRef.current);
+        }
+    }, []);
 
     const handleCopy = async (color: ParsedColorToken) => {
         const fullCssVar = `var(${color.cssVariable})`;
@@ -182,19 +211,23 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                     </div>
                 ))}
 
-                {copiedValue && (
-                    <div className="ftd-copied-toast" role="status" aria-live="polite">
-                        <div className="ftd-toast-icon">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <div className="ftd-toast-content">
-                            <span className="ftd-toast-label">Copied</span>
-                            <span className="ftd-toast-value">{copiedValue}</span>
-                        </div>
-                    </div>
-                )}
+                {copiedToast &&
+                    (typeof document !== 'undefined'
+                        ? createPortal(
+                            <div className="ftd-copied-toast" role="status" aria-live="polite" key={copiedToast.id}>
+                                <div className="ftd-toast-icon">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div className="ftd-toast-content">
+                                    <span className="ftd-toast-label">Copied</span>
+                                    <span className="ftd-toast-value">{copiedToast.value}</span>
+                                </div>
+                            </div>,
+                            document.body
+                        )
+                        : null)}
             </div>
         </div>
     );
