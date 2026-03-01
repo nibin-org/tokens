@@ -1,0 +1,101 @@
+.sharedHeaderNotice {
+  position: fixed;
+  top: 90px;
+  right: 40px;
+  max-width: min(680px, calc(100vw - 80px));
+  padding: 0 14px;
+  min-height: 40px;
+  border-radius: 12px;
+  background: var(--ftd-primary-fade);
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.15);
+  color: var(--ftd-primary);
+  font-family: var(--ftd-font-sans);
+  font-size: 0.82rem;
+  line-height: 1;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 6px 16px rgba(18, 58, 112, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sharedHeaderTitle {
+  font-weight: 700;
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.sharedHeaderActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.sharedHeaderAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.25);
+  color: var(--ftd-primary);
+  font-family: var(--ftd-font-sans);
+  font-weight: 700;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.sharedHeaderActionPrimary {
+  background: rgba(var(--ftd-primary-rgb), 0.12);
+}
+
+.sharedHeaderActionSecondary {
+  background: rgba(var(--ftd-primary-rgb), 0.06);
+}
+
+.sharedHeaderBody {
+  color: var(--ftd-primary);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(360px, 34vw);
+  font-family: var(--ftd-font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.errorBanner {
+  margin: 168px auto 12px;
+  max-width: 1280px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 239, 220, 0.98);
+  border: 1px solid #e7a545;
+  color: #5c3300;
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 1;
+  position: relative;
+  z-index: 9999;
+}
+
+@media (max-width: 1024px) {
+  .sharedHeaderNotice {
+    top: 68px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    border-radius: 12px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .sharedHeaderBody {
+    max-width: calc(100vw - 120px);
+  }
+}

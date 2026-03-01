@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { TokenDocumentation } from 'tokvista'
 import 'tokvista/styles.css'
 import defaultTokens from '../../../tokens.json' // Real tokens from Figma Token Studio
+import styles from './page.module.css'
 
 type TokensPayload = Record<string, unknown>
 
@@ -62,6 +63,8 @@ export default function Home() {
     `Real tokens from Figma Token Studio - Version ${process.env.NEXT_PUBLIC_PACKAGE_VERSION}`
   )
   const [loadError, setLoadError] = useState('')
+  const [isSharedPreview, setIsSharedPreview] = useState(false)
+  const [sharedSourceLabel, setSharedSourceLabel] = useState('')
 
   useEffect(() => {
     let disposed = false
@@ -69,6 +72,8 @@ export default function Home() {
     if (inlineTokens) {
       setTokens(inlineTokens)
       setSubtitle('Shared preview from Figma plugin')
+      setSharedSourceLabel('Figma plugin')
+      setIsSharedPreview(true)
       setLoadError('')
       return
     }
@@ -90,6 +95,8 @@ export default function Home() {
         setTokens(parsed as TokensPayload)
         const host = new URL(source).host
         setSubtitle(`Shared preview from ${host}`)
+        setSharedSourceLabel(host)
+        setIsSharedPreview(true)
         setLoadError('')
       } catch (error) {
         if (disposed) return
@@ -107,21 +114,9 @@ export default function Home() {
   return (
     <main>
       {loadError ? (
-        <div
-          style={{
-            margin: '16px auto 0',
-            maxWidth: 1280,
-            padding: '10px 12px',
-            borderRadius: 8,
-            background: '#fff4e5',
-            border: '1px solid #f0c36d',
-            color: '#7a4b00',
-            fontSize: 14,
-            lineHeight: 1.4,
-          }}
-        >
+        <aside className={styles.errorBanner} role="alert">
           Preview link failed: {loadError}. Showing bundled tokens instead.
-        </div>
+        </aside>
       ) : null}
       <TokenDocumentation
         tokens={tokens}
@@ -131,6 +126,32 @@ export default function Home() {
           console.log('Token clicked:', token)
         }}
       />
+      {isSharedPreview ? (
+        <aside className={styles.sharedHeaderNotice} role="note" aria-label="Shared preview notice">
+          <div className={styles.sharedHeaderTitle}>Preview Only</div>
+          <div className={styles.sharedHeaderBody}>
+            {sharedSourceLabel || 'shared source'} - use tokvista package for production
+          </div>
+          <div className={styles.sharedHeaderActions}>
+            <a
+              href="https://www.npmjs.com/package/tokvista"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionPrimary}`}
+            >
+              Install tokvista
+            </a>
+            <a
+              href="https://github.com/nibin-org/tokvista#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${styles.sharedHeaderAction} ${styles.sharedHeaderActionSecondary}`}
+            >
+              Docs
+            </a>
+          </div>
+        </aside>
+      ) : null}
     </main>
   )
 }
