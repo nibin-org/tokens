@@ -36,6 +36,7 @@ export function TokenDocumentation({
     fontFamilyMono,
     loadDefaultFonts = true,
     onTokenClick,
+    playgroundLock,
 }: TokenDocumentationProps) {
     // State
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
@@ -559,6 +560,7 @@ export function TokenDocumentation({
     }, [fontFamilySans, fontFamilyMono]);
 
     // --- Sub-Components ---
+    const isPlaygroundLocked = Boolean(playgroundLock?.enabled);
 
     const TableSwatch = ({ data }: { data: { reference: string; resolved: string } | null }) => {
         if (!data) return <span className="ftd-cell-empty">-</span>;
@@ -686,11 +688,15 @@ export function TokenDocumentation({
                             <button
                                 type="button"
                                 key={tab.id}
-                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''}`}
+                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''} ${tab.id === 'playground' && isPlaygroundLocked ? 'ftd-tab-locked' : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
+                                title={tab.id === 'playground' && isPlaygroundLocked ? 'Interactive Sandbox is read-only in shared preview' : undefined}
                             >
                                 <span style={{ marginRight: '8px' }}>{tab.icon}</span>
                                 {tab.label}
+                                {tab.id === 'playground' && isPlaygroundLocked && (
+                                    <span className="ftd-tab-badge ftd-tab-badge-lock">Read only</span>
+                                )}
                             </button>
                         ))}
                     </nav>
@@ -731,6 +737,7 @@ export function TokenDocumentation({
                         activeTab={playgroundActiveTab}
                         setActiveTab={setPlaygroundActiveTab}
                         onReset={resetPlaygroundConfig}
+                        lock={playgroundLock}
                     />
                 )}
             </div>

@@ -85,6 +85,15 @@ export interface TokenDocumentationProps {
   fontFamilyMono?: string;
   loadDefaultFonts?: boolean;
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
+  playgroundLock?: PlaygroundLockOptions;
+}
+
+export interface PlaygroundLockOptions {
+  enabled: boolean;
+  title?: string;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export interface ColorDisplayProps {

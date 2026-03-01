@@ -323,6 +323,23 @@ body {
   transform: translateY(-1px);
 }
 
+.ftd-tab.ftd-tab-locked {
+  gap: 6px;
+}
+
+.ftd-tab-badge-lock {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(var(--ftd-primary-rgb), 0.14);
+  color: var(--ftd-primary);
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.24);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
 .ftd-playground-copy-btn:hover {
   background: var(--ftd-bg-hover);
   color: var(--ftd-primary);
@@ -3206,6 +3223,68 @@ body {
   border-radius: 18px;
   border: 1px solid var(--ftd-border);
   background: linear-gradient(135deg, rgba(var(--ftd-primary-rgb), 0.08), rgba(148, 163, 184, 0.08));
+}
+
+.ftd-playground-content {
+  position: relative;
+}
+
+.ftd-playground-content.ftd-playground-content-locked .ftd-playground-layout {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.5;
+  filter: saturate(0.75);
+}
+
+.ftd-playground-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.ftd-playground-lock-card {
+  width: min(440px, 92%);
+  border-radius: 14px;
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.2);
+  background: var(--ftd-surface-bg-strong);
+  box-shadow: var(--ftd-premium-shadow);
+  padding: 16px;
+  text-align: center;
+}
+
+.ftd-playground-lock-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ftd-text-main);
+}
+
+.ftd-playground-lock-text {
+  margin: 8px 0 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ftd-text-sub);
+}
+
+.ftd-playground-lock-btn {
+  margin-top: 12px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.2);
+  background: var(--ftd-primary-fade);
+  color: var(--ftd-primary);
+  font-family: var(--ftd-font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ftd-playground-lock-btn:hover {
+  background: rgba(var(--ftd-primary-rgb), 0.18);
 }
 
 .ftd-playground-toolbar {
