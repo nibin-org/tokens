@@ -1,5 +1,6 @@
 const pkg = require('../package.json')
 const isProd = process.env.NODE_ENV === 'production'
+const isVercel = Boolean(process.env.VERCEL)
 const basePath = '/tokvista'
 
 /** @type {import('next').NextConfig} */
@@ -7,7 +8,7 @@ const nextConfig = {
   transpilePackages: ['tokvista'],
   output: 'export',
   trailingSlash: true,
-  ...(isProd ? { basePath, assetPrefix: basePath } : {}),
+  ...(isProd && !isVercel ? { basePath, assetPrefix: basePath } : {}),
   images: {
     unoptimized: true
   },
