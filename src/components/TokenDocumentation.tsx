@@ -514,7 +514,7 @@ export function TokenDocumentation({
         }
 
         if (Object.keys(componentTokens).length > 0) {
-            tabs.push({ id: 'components', label: 'Official Specs', icon: <Icon name="components" /> });
+            tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
         }
 
         // Always add Playground
@@ -794,9 +794,9 @@ export function TokenDocumentation({
 
                 {activeTab === 'components' && (
                     <ComponentsTab
-                        components={mergedComponents}
+                        tokens={componentTokens as NestedTokens}
                         tokenMap={tokenMap}
-                        onCopy={handleCopy}
+                        onTokenClick={onTokenClick}
                     />
                 )}
 

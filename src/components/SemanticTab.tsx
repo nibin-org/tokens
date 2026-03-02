@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens, ParsedColorToken } from '../types';
-import { parseSemanticColors, getContrastColor } from '../utils/color';
+import { getContrastColor } from '../utils/color';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
+import { findAllTokens, resolveTokenValue, toCssVariable } from '../utils/core';
 
 interface SemanticTabProps {
     tokens: NestedTokens;
@@ -13,11 +14,20 @@ interface SemanticTabProps {
     onTokenClick?: (token: any) => void;
 }
 
+interface ParsedToken {
+    name: string;
+    value: string;
+    resolvedValue: string;
+    cssVariable: string;
+    type: string;
+}
+
 interface Section {
     id: string;
     name: string;
     icon: 'fill' | 'stroke' | 'text';
-    colors: ParsedColorToken[];
+    tokens: ParsedToken[];
+    type: string;
 }
 
 /**
@@ -31,34 +41,46 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
     const toastIdRef = useRef(0);
     const toastTimerRef = useRef<number | null>(null);
 
-    // Extract semantic color groups
-    const fillColors = useMemo(() => tokens.fill ? parseSemanticColors(tokens.fill as NestedTokens, 'fill', tokenMap) : [], [tokens.fill, tokenMap]);
-    const strokeColors = useMemo(() => tokens.stroke ? parseSemanticColors(tokens.stroke as NestedTokens, 'stroke', tokenMap) : [], [tokens.stroke, tokenMap]);
-    const textColors = useMemo(() => tokens.text ? parseSemanticColors(tokens.text as NestedTokens, 'text', tokenMap) : [], [tokens.text, tokenMap]);
-
-    // Collect any non-standard semantic keys (e.g. 'background', 'border', 'icon')
-    const otherSections = useMemo<Section[]>(() => {
-        const known = new Set(['fill', 'stroke', 'text']);
-        return Object.keys(tokens)
-            .filter(k => !known.has(k))
-            .map(k => ({
-                id: `other-${k}-section`,
-                name: k.charAt(0).toUpperCase() + k.slice(1),
-                icon: 'fill' as const, // fallback icon
-                colors: parseSemanticColors(tokens[k] as NestedTokens, k, tokenMap),
-            }))
-            .filter(s => s.colors.length > 0);
-    }, [tokens, tokenMap]);
-
+    // Parse all semantic tokens dynamically by group
     const sections = useMemo<Section[]>(() => {
-        const items: Section[] = [
-            { id: 'fill-section', name: 'Fill', icon: 'fill', colors: fillColors },
-            { id: 'stroke-section', name: 'Stroke', icon: 'stroke', colors: strokeColors },
-            { id: 'text-section', name: 'Text', icon: 'text', colors: textColors },
-            ...otherSections,
-        ];
-        return items.filter(section => section.colors.length > 0);
-    }, [fillColors, strokeColors, textColors, otherSections]);
+        const sectionList: Section[] = [];
+        
+        Object.keys(tokens).forEach(groupKey => {
+            const groupTokens = tokens[groupKey] as NestedTokens;
+            const allTokens = findAllTokens(groupTokens);
+            
+            if (allTokens.length === 0) return;
+            
+            const parsedTokens: ParsedToken[] = allTokens.map(({ path, token }) => {
+                const value = typeof token.value === 'string' ? token.value : String(token.value);
+                return {
+                    name: path,
+                    value,
+                    resolvedValue: resolveTokenValue(value, tokenMap),
+                    cssVariable: toCssVariable(path, groupKey),
+                    type: token.type || 'unknown',
+                };
+            });
+            
+            // Determine icon based on group name
+            let icon: 'fill' | 'stroke' | 'text' = 'fill';
+            if (groupKey.toLowerCase().includes('stroke') || groupKey.toLowerCase().includes('border')) {
+                icon = 'stroke';
+            } else if (groupKey.toLowerCase().includes('text') || groupKey.toLowerCase().includes('typography')) {
+                icon = 'text';
+            }
+            
+            sectionList.push({
+                id: `${groupKey}-section`,
+                name: groupKey.charAt(0).toUpperCase() + groupKey.slice(1),
+                icon,
+                tokens: parsedTokens,
+                type: parsedTokens[0]?.type || 'unknown',
+            });
+        });
+        
+        return sectionList;
+    }, [tokens, tokenMap]);
 
     // Initialize active section
     useEffect(() => {
@@ -164,11 +186,11 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
         }
     }, []);
 
-    const handleCopy = async (color: ParsedColorToken) => {
-        const fullCssVar = `var(${color.cssVariable})`;
+    const handleCopy = async (token: ParsedToken) => {
+        const fullCssVar = `var(${token.cssVariable})`;
         const success = await copyToClipboard(fullCssVar);
         if (success) showToast(fullCssVar);
-        onTokenClick?.(color);
+        onTokenClick?.(token);
     };
 
     if (sections.length === 0) {
@@ -188,7 +210,7 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                         >
                             <span className="ftd-nav-icon"><Icon name={section.icon} /></span>
                             <span className="ftd-nav-label">{section.name}</span>
-                            <span className="ftd-nav-count">{section.colors.length}</span>
+                            <span className="ftd-nav-count">{section.tokens.length}</span>
                         </button>
                     ))}
                 </nav>
@@ -200,14 +222,21 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                     <div key={section.id} id={section.id} className="ftd-semantic-section ftd-section ftd-scroll-target">
                         <div className="ftd-section-header">
                             <div className="ftd-section-icon"><Icon name={section.icon} /></div>
-                            <h2 className="ftd-section-title">{section.name} Colors</h2>
-                            <span className="ftd-section-count">{section.colors.length} tokens</span>
+                            <h2 className="ftd-section-title">{section.name}</h2>
+                            <span className="ftd-section-count">{section.tokens.length} tokens</span>
                         </div>
 
-                        <SemanticColorGroups
-                            colors={section.colors}
-                            onCopy={handleCopy}
-                        />
+                        {section.type === 'color' ? (
+                            <SemanticColorGroups
+                                tokens={section.tokens}
+                                onCopy={handleCopy}
+                            />
+                        ) : (
+                            <SemanticGenericTokens
+                                tokens={section.tokens}
+                                onCopy={handleCopy}
+                            />
+                        )}
                     </div>
                 ))}
 
@@ -237,16 +266,16 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
  * Group and display semantic colors by their base color name
  */
 function SemanticColorGroups({
-    colors,
+    tokens,
     onCopy
 }: {
-    colors: ParsedColorToken[];
-    onCopy: (color: ParsedColorToken) => void;
+    tokens: ParsedToken[];
+    onCopy: (token: ParsedToken) => void;
 }) {
     // Group colors by their base name
     const groupedColors = useMemo(() => {
-        const groups: Record<string, ParsedColorToken[]> = {};
-        colors.forEach(color => {
+        const groups: Record<string, ParsedToken[]> = {};
+        tokens.forEach(color => {
             const nameParts = color.name.split(/[-_\.]/);
             let baseName = nameParts[0];
             const commonColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey', 'black', 'white', 'cyan', 'teal'];
@@ -257,7 +286,7 @@ function SemanticColorGroups({
             groups[baseName].push(color);
         });
         return groups;
-    }, [colors]);
+    }, [tokens]);
 
     return (
         <div className="ftd-semantic-groups">
@@ -306,6 +335,47 @@ function SemanticColorGroups({
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+/**
+ * Display non-color semantic tokens in a simple grid
+ */
+function SemanticGenericTokens({
+    tokens,
+    onCopy
+}: {
+    tokens: ParsedToken[];
+    onCopy: (token: ParsedToken) => void;
+}) {
+    return (
+        <div className="ftd-token-grid">
+            {tokens.map((token) => {
+                const isAlias = token.value.startsWith('{');
+                const displayValue = isAlias ? token.resolvedValue : token.value;
+                
+                return (
+                    <div
+                        key={token.name}
+                        className="ftd-token-card"
+                        data-token-name={token.name}
+                        data-token-css-var={token.cssVariable}
+                        onClick={() => onCopy(token)}
+                    >
+                        <div className="ftd-token-info">
+                            <p className="ftd-token-name">{token.name}</p>
+                            <div className="ftd-token-values-row">
+                                <span className="ftd-token-css-var">{token.cssVariable}</span>
+                                <span className="ftd-token-hex">{displayValue}</span>
+                            </div>
+                            {isAlias && (
+                                <span className="ftd-token-alias-badge">Alias: {token.value}</span>
+                            )}
                         </div>
                     </div>
                 );

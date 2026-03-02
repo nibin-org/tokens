@@ -26,52 +26,8 @@ interface Section {
     count: number;
 }
 
-type FoundationTokenKind = 'color' | 'spacing' | 'sizing' | 'radius' | 'typography' | 'other';
-
 function isTokenObject(value: unknown): value is { value: string | number; type: string } {
     return !!value && typeof value === 'object' && 'value' in (value as Record<string, unknown>) && 'type' in (value as Record<string, unknown>);
-}
-
-function inferKindFromPath(path: string[]): FoundationTokenKind {
-    const joined = path.join('-').toLowerCase();
-
-    if (joined.includes('radius') || joined.includes('round')) return 'radius';
-    if (joined.includes('space') || joined.includes('spacing') || joined.includes('gap') || joined.includes('padding') || joined.includes('margin')) return 'spacing';
-    if (joined.includes('font') || joined.includes('line-height') || joined.includes('lineheight') || joined.includes('letter')) return 'typography';
-    if (joined.includes('size') || joined.includes('width') || joined.includes('height')) return 'sizing';
-
-    return 'other';
-}
-
-function normalizeTokenKind(type: string, path: string[]): FoundationTokenKind {
-    const raw = String(type || '').toLowerCase();
-
-    if (raw === 'color') return 'color';
-    if (raw === 'spacing') return 'spacing';
-    if (raw === 'sizing' || raw === 'size') return 'sizing';
-    if (raw === 'borderradius' || raw === 'radius') return 'radius';
-    if (raw.includes('font') || raw.includes('line') || raw.includes('letter')) return 'typography';
-
-    if (raw === 'dimension') return inferKindFromPath(path);
-
-    const inferred = inferKindFromPath(path);
-    return inferred === 'other' ? 'other' : inferred;
-}
-
-function normalizePathForKind(path: string[]): string[] {
-    const genericWrappers = new Set(['foundation', 'value', 'base', 'token', 'tokens', 'primitive', 'primitives']);
-
-    let start = 0;
-    while (start < path.length - 1) {
-        const part = path[start].toLowerCase();
-        if (genericWrappers.has(part)) {
-            start += 1;
-            continue;
-        }
-        break;
-    }
-
-    return path.slice(start);
 }
 
 function addTokenAtPath(target: Record<string, any>, path: string[], token: { value: string | number; type: string }) {
@@ -90,23 +46,16 @@ function addTokenAtPath(target: Record<string, any>, path: string[], token: { va
 }
 
 function collectTypedTrees(tokens: NestedTokens) {
-    const colorTree: Record<string, any> = {};
-    const spacingTree: Record<string, any> = {};
-    const sizingTree: Record<string, any> = {};
-    const radiusTree: Record<string, any> = {};
-    const typographyTree: Record<string, any> = {};
+    const typeGroups: Record<string, Record<string, any>> = {};
 
     const walk = (node: unknown, path: string[]) => {
         if (!node || typeof node !== 'object') return;
 
         if (isTokenObject(node)) {
-            const kind = normalizeTokenKind(node.type, path);
-            const normalizedPath = normalizePathForKind(path);
-            if (kind === 'color') addTokenAtPath(colorTree, normalizedPath, node);
-            if (kind === 'spacing') addTokenAtPath(spacingTree, normalizedPath, node);
-            if (kind === 'sizing') addTokenAtPath(sizingTree, normalizedPath, node);
-            if (kind === 'radius') addTokenAtPath(radiusTree, normalizedPath, node);
-            if (kind === 'typography') addTokenAtPath(typographyTree, normalizedPath, node);
+            const tokenType = node.type || 'other';
+            if (!typeGroups[tokenType]) typeGroups[tokenType] = {};
+            // Use original path without normalization
+            addTokenAtPath(typeGroups[tokenType], path, node);
             return;
         }
 
@@ -116,14 +65,15 @@ function collectTypedTrees(tokens: NestedTokens) {
     };
 
     walk(tokens, []);
-    return { colorTree, spacingTree, sizingTree, radiusTree, typographyTree };
+    return typeGroups;
 }
 
 function normalizeColorFamilyName(path: string[]) {
+    // Remove common wrapper names to get the actual color family name
     const wrappers = new Set(['color', 'colors', 'base', 'foundation', 'value', 'primitive', 'primitives', 'palette', 'palettes']);
     const filtered = path.filter(p => !wrappers.has(p.toLowerCase()));
     const finalParts = filtered.length > 0 ? filtered : path;
-    return finalParts.join('-') || 'base';
+    return finalParts.join('-') || 'color';
 }
 
 function flattenColorFamilies(node: unknown, path: string[] = [], families: Record<string, any> = {}) {
@@ -160,40 +110,38 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
 
     const sections = useMemo(() => {
         const items: Section[] = [];
+        const typeGroups = collectTypedTrees(tokens);
 
-        const { colorTree, spacingTree, sizingTree, radiusTree, typographyTree } = collectTypedTrees(tokens);
-        const colorFamilies = flattenColorFamilies(colorTree);
+        // Create a section for each unique type - no categorization
+        Object.entries(typeGroups).forEach(([type, tree]) => {
+            const tokenCount = findAllTokens(tree as NestedTokens).length;
+            if (tokenCount === 0) return;
 
-        if (Object.keys(colorFamilies).length > 0) {
-            items.push({
-                id: 'colors-section',
-                name: 'Colors',
-                icon: 'colors',
-                type: 'colors',
-                tokens: colorFamilies,
-                count: Object.keys(colorFamilies).length
-            });
-        }
-
-        const spacingCount = findAllTokens(spacingTree as NestedTokens).length;
-        if (spacingCount > 0) {
-            items.push({ id: 'spacing-section', name: 'Spacing', icon: 'spacing', type: 'spacing', tokens: spacingTree, count: spacingCount });
-        }
-
-        const sizingCount = findAllTokens(sizingTree as NestedTokens).length;
-        if (sizingCount > 0) {
-            items.push({ id: 'sizes-section', name: 'Sizes', icon: 'sizes', type: 'sizing', tokens: sizingTree, count: sizingCount });
-        }
-
-        const radiusCount = findAllTokens(radiusTree as NestedTokens).length;
-        if (radiusCount > 0) {
-            items.push({ id: 'radius-section', name: 'Radius', icon: 'radius', type: 'radius', tokens: radiusTree, count: radiusCount });
-        }
-
-        const typographyCount = findAllTokens(typographyTree as NestedTokens).length;
-        if (typographyCount > 0) {
-            items.push({ id: 'typography-section', name: 'Typography', icon: 'typography', type: 'typography', tokens: typographyTree, count: typographyCount });
-        }
+            const normalized = type.toLowerCase().replace(/[-_]/g, '');
+            
+            // Only special handling for colors (needs family grouping)
+            if (normalized.includes('color')) {
+                const colorFamilies = flattenColorFamilies(tree);
+                items.push({
+                    id: `${type}-section`,
+                    name: type,
+                    icon: 'colors',
+                    type: 'colors',
+                    tokens: colorFamilies,
+                    count: Object.keys(colorFamilies).length
+                });
+            } else {
+                // Everything else uses generic display
+                items.push({
+                    id: `${type}-section`,
+                    name: type,
+                    icon: 'components',
+                    type: 'generic',
+                    tokens: tree,
+                    count: tokenCount
+                });
+            }
+        });
 
         return items;
     }, [tokens]);
@@ -315,7 +263,7 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                             <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
                                     <div className="ftd-section-icon"><Icon name="colors" /></div>
-                                    <h2 className="ftd-section-title">Base Colors</h2>
+                                    <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{Object.keys(section.tokens).length} families</span>
                                 </div>
                                 <ColorFamiliesDisplay
@@ -326,32 +274,14 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                             </div>
                         )}
 
-                        {section.type === 'spacing' && (
-                            <div id={section.id} className="ftd-scroll-target">
-                                <SpacingDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
-                            </div>
-                        )}
-
-                        {section.type === 'sizing' && (
-                            <div id={section.id} className="ftd-scroll-target">
-                                <SizeDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
-                            </div>
-                        )}
-
-                        {section.type === 'radius' && (
-                            <div id={section.id} className="ftd-scroll-target">
-                                <RadiusDisplay tokens={section.tokens} onTokenClick={onTokenClick} />
-                            </div>
-                        )}
-
-                        {section.type === 'typography' && (
+                        {section.type === 'generic' && (
                             <div id={section.id} className="ftd-section ftd-scroll-target">
                                 <div className="ftd-section-header">
-                                    <div className="ftd-section-icon"><Icon name="typography" /></div>
+                                    <div className="ftd-section-icon"><Icon name={section.icon} /></div>
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
-                                <TypographyDisplay tokens={section.tokens} />
+                                <GenericTokenDisplay tokens={section.tokens} />
                             </div>
                         )}
                     </React.Fragment>
@@ -366,34 +296,7 @@ function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
     const toastIdRef = useRef(0);
     const toastTimerRef = useRef<number | null>(null);
 
-    const entries = findAllTokens(tokens).filter(({ path, token }) => normalizeTokenKind(token.type, path.split('.')) === 'typography');
-    const groups = useMemo(() => {
-        const map = new Map<string, Array<{ path: string; token: { value: string | number; type: string } }>>();
-        const wrappers = new Set(['typography', 'type', 'types']);
-        const order = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
-
-        const getGroupName = (path: string) => {
-            const parts = path.split('.').filter(Boolean);
-            if (parts.length === 0) return 'typography';
-            if (wrappers.has(parts[0].toLowerCase()) && parts.length > 1) return parts[1];
-            return parts[0];
-        };
-
-        entries.forEach((entry) => {
-            const groupName = getGroupName(entry.path);
-            if (!map.has(groupName)) map.set(groupName, []);
-            map.get(groupName)!.push(entry as { path: string; token: { value: string | number; type: string } });
-        });
-
-        return Array.from(map.entries()).sort(([a], [b]) => {
-            const aIndex = order.indexOf(a);
-            const bIndex = order.indexOf(b);
-            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-        });
-    }, [entries]);
+    const entries = findAllTokens(tokens);
 
     const showToast = (value: string) => {
         const id = ++toastIdRef.current;
@@ -420,88 +323,183 @@ function TypographyDisplay({ tokens }: { tokens: NestedTokens }) {
 
     return (
         <>
-            <div className="ftd-typography-groups">
-                {groups.map(([groupName, groupEntries]) => (
-                    <div key={groupName} className="ftd-typography-group">
-                        <div className="ftd-typography-group-header">
-                            <h3 className="ftd-typography-group-title">{groupName}</h3>
-                            <span className="ftd-section-count">{groupEntries.length} tokens</span>
-                        </div>
-                        <div className="ftd-token-grid">
-                            {groupEntries.map(({ path, token }) => {
-                                const name = path;
-                                const cssVar = toCssVariable(path);
-                                const varValue = `var(${cssVar})`;
-                                const lowerName = name.toLowerCase();
-                                const isLineHeight = lowerName.includes('lineheight') || lowerName.includes('line-height');
-                                const isFontFamily = lowerName.includes('fontfamily') || lowerName.includes('font-family');
-                                const isFontWeight = lowerName.includes('fontweight') || lowerName.includes('font-weight');
-                                const isLetterSpacing = lowerName.includes('letterspacing') || lowerName.includes('letter-spacing');
-                                const isFontSize = lowerName.includes('fontsize') || lowerName.includes('font-size');
+            <div className="ftd-token-grid">
+                {entries.map(({ path, token }) => {
+                    const name = path;
+                    const cssVar = toCssVariable(path);
+                    const varValue = `var(${cssVar})`;
+                    const lowerName = name.toLowerCase();
+                    const isLineHeight = lowerName.includes('lineheight') || lowerName.includes('line-height') || lowerName.includes('line');
+                    const isFontFamily = lowerName.includes('fontfamily') || lowerName.includes('font-family') || lowerName.includes('family');
+                    const isFontWeight = lowerName.includes('fontweight') || lowerName.includes('font-weight') || lowerName.includes('weight');
+                    const isLetterSpacing = lowerName.includes('letterspacing') || lowerName.includes('letter-spacing') || lowerName.includes('letter');
+                    const isFontSize = lowerName.includes('fontsize') || lowerName.includes('font-size') || lowerName.includes('size');
 
-                                return (
+                    return (
+                        <div
+                            key={path}
+                            className="ftd-display-card ftd-clickable-card"
+                            data-token-name={name}
+                            onClick={() => void handleCopy(varValue)}
+                            title={`Click to copy: ${varValue}`}
+                        >
+                            <div className="ftd-token-preview-container">
+                                {isLineHeight ? (
                                     <div
-                                        key={path}
-                                        className="ftd-display-card ftd-clickable-card"
-                                        data-token-name={name}
-                                        onClick={() => void handleCopy(varValue)}
-                                        title={`Click to copy: ${varValue}`}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: token.value,
+                                            width: '32px'
+                                        }}
                                     >
-                                        <div className="ftd-token-preview-container">
-                                            {isLineHeight ? (
-                                                <div
-                                                    style={{
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: token.value,
-                                                        width: '32px'
-                                                    }}
-                                                >
-                                                    <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
-                                                    <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    style={{
-                                                        fontFamily: isFontFamily ? String(token.value) : 'inherit',
-                                                        fontSize: isFontSize ? String(token.value) : '24px',
-                                                        fontWeight: isFontWeight ? String(token.value) : 600,
-                                                        letterSpacing: isLetterSpacing ? String(token.value) : 'normal',
-                                                        color: 'var(--ftd-primary)',
-                                                        lineHeight: 1
-                                                    }}
-                                                >
-                                                    Aa
-                                                </div>
-                                            )}
-                                        </div>
-                                        <p className="ftd-token-card-label">{name}</p>
-                                        <div className="ftd-token-values-row">
-                                            <span
-                                                className="ftd-token-css-var"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    void handleCopy(cssVar);
-                                                }}
-                                            >
-                                                {cssVar}
-                                            </span>
-                                            <span
-                                                className="ftd-token-hex"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    void handleCopy(String(token.value));
-                                                }}
-                                            >
-                                                {token.value}
-                                            </span>
-                                        </div>
+                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
+                                        <div style={{ height: '2px', background: 'var(--ftd-primary)', width: '100%', opacity: 0.8 }} />
                                     </div>
-                                );
-                            })}
+                                ) : (
+                                    <div
+                                        style={{
+                                            fontFamily: isFontFamily ? String(token.value) : 'inherit',
+                                            fontSize: isFontSize ? String(token.value) : '24px',
+                                            fontWeight: isFontWeight ? String(token.value) : 600,
+                                            letterSpacing: isLetterSpacing ? String(token.value) : 'normal',
+                                            color: 'var(--ftd-primary)',
+                                            lineHeight: 1
+                                        }}
+                                    >
+                                        Aa
+                                    </div>
+                                )}
+                            </div>
+                            <p className="ftd-token-card-label">{name}</p>
+                            <div className="ftd-token-values-row">
+                                <span
+                                    className="ftd-token-css-var"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(cssVar);
+                                    }}
+                                >
+                                    {cssVar}
+                                </span>
+                                <span
+                                    className="ftd-token-hex"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(String(token.value));
+                                    }}
+                                >
+                                    {token.value}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
+            </div>
+
+            {copiedToast &&
+                (typeof document !== 'undefined'
+                    ? createPortal(
+                        <div key={copiedToast.id} className="ftd-copied-toast">
+                            <div className="ftd-toast-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div className="ftd-toast-content">
+                                <span className="ftd-toast-label">Copied</span>
+                                <span className="ftd-toast-value">{copiedToast.value}</span>
+                            </div>
+                        </div>,
+                        document.body
+                    )
+                    : null)}
+        </>
+    );
+}
+
+function GenericTokenDisplay({ tokens }: { tokens: NestedTokens }) {
+    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
+    const toastIdRef = useRef(0);
+    const toastTimerRef = useRef<number | null>(null);
+
+    const entries = findAllTokens(tokens);
+
+    const showToast = (value: string) => {
+        const id = ++toastIdRef.current;
+        setCopiedToast({ id, value });
+        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = window.setTimeout(() => {
+            setCopiedToast((current) => (current && current.id === id ? null : current));
+            toastTimerRef.current = null;
+        }, 2000);
+    };
+
+    useEffect(() => () => {
+        if (toastTimerRef.current !== null) {
+            window.clearTimeout(toastTimerRef.current);
+        }
+    }, []);
+
+    const handleCopy = async (value: string) => {
+        const success = await copyToClipboard(value);
+        if (success) showToast(value);
+    };
+
+    if (entries.length === 0) return null;
+
+    return (
+        <>
+            <div className="ftd-token-grid">
+                {entries.map(({ path, token }) => {
+                    const cssVar = toCssVariable(path);
+                    const varValue = `var(${cssVar})`;
+
+                    return (
+                        <div
+                            key={path}
+                            className="ftd-display-card ftd-clickable-card"
+                            data-token-name={path}
+                            onClick={() => void handleCopy(varValue)}
+                            title={`Click to copy: ${varValue}`}
+                        >
+                            <div className="ftd-token-preview-container">
+                                <div
+                                    style={{
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        color: 'var(--ftd-primary)',
+                                        fontFamily: 'var(--ftd-font-mono)',
+                                        wordBreak: 'break-all'
+                                    }}
+                                >
+                                    {String(token.value).substring(0, 20)}{String(token.value).length > 20 ? '...' : ''}
+                                </div>
+                            </div>
+                            <p className="ftd-token-card-label">{path}</p>
+                            <div className="ftd-token-values-row">
+                                <span
+                                    className="ftd-token-css-var"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(cssVar);
+                                    }}
+                                >
+                                    {cssVar}
+                                </span>
+                                <span
+                                    className="ftd-token-hex"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleCopy(String(token.value));
+                                    }}
+                                >
+                                    {token.value}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {copiedToast &&
