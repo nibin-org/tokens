@@ -13,6 +13,8 @@ import { PlaygroundTab, type PlaygroundConfig } from './PlaygroundTab';
 import { createTokenMap, resolveTokenValue, findAllTokens, toCssVariable, deepMergeRecords, getFoundationTokenTree } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
+import { FormatSelector, type CopyFormat } from './FormatSelector';
+import { formatTokenForCopy, formatCopiedLabel } from '../utils/formatUtils';
 
 type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
 
@@ -132,6 +134,19 @@ export function TokenDocumentation({
     const [resetModalOpen, setResetModalOpen] = useState(false);
     const copiedToastIdRef = useRef(0);
     const copiedToastTimerRef = useRef<number | null>(null);
+
+    // Copy format state
+    const [copyFormat, setCopyFormat] = useState<CopyFormat>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('ftd-copy-format');
+                if (saved === 'css' || saved === 'scss' || saved === 'tailwind') {
+                    return saved;
+                }
+            } catch {}
+        }
+        return 'css';
+    });
 
     // Default configuration
     const defaultPlaygroundConfig: PlaygroundConfig = {
@@ -307,6 +322,15 @@ export function TokenDocumentation({
             }
         }
     }, [activeTab, isMounted]);
+
+    // Save copy format preference
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('ftd-copy-format', copyFormat);
+            } catch {}
+        }
+    }, [copyFormat]);
 
     // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
     useEffect(() => {
@@ -573,24 +597,15 @@ export function TokenDocumentation({
     }, [componentTokens]);
 
     // --- Interaction ---
-    const formatCopiedLabel = (label: string | undefined, value: string) => {
-        const text = label || value;
-        if (!text) return value;
-        if (text.startsWith('var(')) return text;
-        if (text.startsWith('--')) return `var(${text})`;
-        if (text.startsWith('{') && text.endsWith('}')) {
-            const refPath = text.slice(1, -1);
-            return `var(${toCssVariable(refPath)})`;
-        }
-        return text;
-    };
 
-    const handleCopy = async (value: string, label: string) => {
+
+    const handleCopy = async (value: string, label: string, tokenPath?: string) => {
         try {
-            const success = await copyToClipboard(value);
+            const formattedValue = formatTokenForCopy(value, tokenPath || label, copyFormat);
+            const success = await copyToClipboard(formattedValue);
             if (!success) return;
             const id = ++copiedToastIdRef.current;
-            setCopiedToken({ id, value: formatCopiedLabel(label, value) });
+            setCopiedToken({ id, value: formatCopiedLabel(label, formattedValue, copyFormat) });
             if (copiedToastTimerRef.current !== null) window.clearTimeout(copiedToastTimerRef.current);
             copiedToastTimerRef.current = window.setTimeout(() => {
                 setCopiedToken((current) => (current && current.id === id ? null : current));
@@ -717,6 +732,7 @@ export function TokenDocumentation({
                         <p className="ftd-subtitle">{subtitle}</p>
                     </div>
                     <div className="ftd-header-actions">
+                        <FormatSelector format={copyFormat} onChange={setCopyFormat} />
                         <button className="ftd-export-button-nav" onClick={() => setExportOpen(true)} type="button">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v4"></path>
@@ -781,6 +797,8 @@ export function TokenDocumentation({
                         tokens={foundationTokens}
                         tokenMap={tokenMap}
                         onTokenClick={onTokenClick}
+                        copyFormat={copyFormat}
+                        onCopy={handleCopy}
                     />
                 )}
 
@@ -789,6 +807,8 @@ export function TokenDocumentation({
                         tokens={semanticTokens}
                         tokenMap={tokenMap}
                         onTokenClick={onTokenClick}
+                        copyFormat={copyFormat}
+                        onCopy={handleCopy}
                     />
                 )}
 
@@ -797,6 +817,8 @@ export function TokenDocumentation({
                         tokens={componentTokens as NestedTokens}
                         tokenMap={tokenMap}
                         onTokenClick={onTokenClick}
+                        copyFormat={copyFormat}
+                        onCopy={handleCopy}
                     />
                 )}
 

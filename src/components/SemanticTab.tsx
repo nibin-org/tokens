@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens, ParsedColorToken } from '../types';
+import type { CopyFormat } from './FormatSelector';
 import { getContrastColor } from '../utils/color';
-import { copyToClipboard } from '../utils/ui';
+import { formatTokenPath } from '../utils/formatUtils';
 import { Icon } from './Icon';
 import { TokenPreview } from './TokenPreview';
 import { findAllTokens, resolveTokenValue, toCssVariable } from '../utils/core';
@@ -13,6 +14,8 @@ interface SemanticTabProps {
     tokens: NestedTokens;
     tokenMap: Record<string, string>;
     onTokenClick?: (token: any) => void;
+    copyFormat: CopyFormat;
+    onCopy: (value: string, label: string, tokenPath?: string) => Promise<void>;
 }
 
 interface ParsedToken {
@@ -34,13 +37,10 @@ interface Section {
 /**
  * SemanticTab - Displays semantic color tokens with scroll-spy navigation
  */
-export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps) {
+export function SemanticTab({ tokens, tokenMap, onTokenClick, copyFormat, onCopy }: SemanticTabProps) {
     const rafId = useRef<number | null>(null);
     const pendingSectionId = useRef<string | null>(null);
-    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
-    const toastIdRef = useRef(0);
-    const toastTimerRef = useRef<number | null>(null);
 
     // Parse all semantic tokens dynamically by group
     const sections = useMemo<Section[]>(() => {
@@ -171,26 +171,8 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
         }
     };
 
-    const showToast = (value: string) => {
-        const id = ++toastIdRef.current;
-        setCopiedToast({ id, value });
-        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = window.setTimeout(() => {
-            setCopiedToast((current) => (current && current.id === id ? null : current));
-            toastTimerRef.current = null;
-        }, 2000);
-    };
-
-    useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
-    }, []);
-
     const handleCopy = async (token: ParsedToken) => {
-        const fullCssVar = `var(${token.cssVariable})`;
-        const success = await copyToClipboard(fullCssVar);
-        if (success) showToast(fullCssVar);
+        await onCopy(token.resolvedValue, token.cssVariable, token.name);
         onTokenClick?.(token);
     };
 
@@ -231,33 +213,17 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
                             <SemanticColorGroups
                                 tokens={section.tokens}
                                 onCopy={handleCopy}
+                                copyFormat={copyFormat}
                             />
                         ) : (
                             <SemanticGenericTokens
                                 tokens={section.tokens}
                                 onCopy={handleCopy}
+                                copyFormat={copyFormat}
                             />
                         )}
                     </div>
                 ))}
-
-                {copiedToast &&
-                    (typeof document !== 'undefined'
-                        ? createPortal(
-                            <div className="ftd-copied-toast" role="status" aria-live="polite" key={copiedToast.id}>
-                                <div className="ftd-toast-icon">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                </div>
-                                <div className="ftd-toast-content">
-                                    <span className="ftd-toast-label">Copied</span>
-                                    <span className="ftd-toast-value">{copiedToast.value}</span>
-                                </div>
-                            </div>,
-                            document.body
-                        )
-                        : null)}
             </div>
         </div>
     );
@@ -268,10 +234,12 @@ export function SemanticTab({ tokens, tokenMap, onTokenClick }: SemanticTabProps
  */
 function SemanticColorGroups({
     tokens,
-    onCopy
+    onCopy,
+    copyFormat
 }: {
     tokens: ParsedToken[];
     onCopy: (token: ParsedToken) => void;
+    copyFormat: CopyFormat;
 }) {
     // Group colors by their base name
     const groupedColors = useMemo(() => {
@@ -312,6 +280,7 @@ function SemanticColorGroups({
                                 const isAlias = color.value.startsWith('{');
                                 const bgColor = color.resolvedValue || color.value;
                                 const textColor = getContrastColor(bgColor);
+                                const formattedVar = formatTokenPath(color.name, copyFormat);
 
                                 return (
                                     <div
@@ -327,7 +296,7 @@ function SemanticColorGroups({
                                         <div className="ftd-token-info">
                                             <p className="ftd-token-name">{color.name}</p>
                                             <div className="ftd-token-values-row">
-                                                <span className="ftd-token-css-var">{color.cssVariable}</span>
+                                                <span className="ftd-token-css-var">{formattedVar}</span>
                                                 <span className="ftd-token-hex">
                                                     {isAlias ? color.resolvedValue?.substring(0, 9) : color.value.substring(0, 9)}
                                                 </span>
@@ -349,16 +318,19 @@ function SemanticColorGroups({
  */
 function SemanticGenericTokens({
     tokens,
-    onCopy
+    onCopy,
+    copyFormat
 }: {
     tokens: ParsedToken[];
     onCopy: (token: ParsedToken) => void;
+    copyFormat: CopyFormat;
 }) {
     return (
         <div className="ftd-token-grid">
             {tokens.map((token) => {
                 const isAlias = token.value.startsWith('{');
                 const displayValue = isAlias ? token.resolvedValue : token.value;
+                const formattedVar = formatTokenPath(token.name, copyFormat);
                 
                 return (
                     <div
@@ -371,7 +343,7 @@ function SemanticGenericTokens({
                         <TokenPreview type={token.type} value={displayValue} name={token.name} />
                         <p className="ftd-token-card-label">{token.name}</p>
                         <div className="ftd-token-values-row">
-                            <span className="ftd-token-css-var">{token.cssVariable}</span>
+                            <span className="ftd-token-css-var">{formattedVar}</span>
                             <span className="ftd-token-hex">{displayValue}</span>
                         </div>
                     </div>

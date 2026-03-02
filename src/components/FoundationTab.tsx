@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens } from '../types';
+import type { CopyFormat } from './FormatSelector';
 import { getContrastColor } from '../utils/color';
-import { copyToClipboard } from '../utils/ui';
 import { findAllTokens, toCssVariable } from '../utils/core';
+import { formatTokenPath } from '../utils/formatUtils';
 import { Icon, type IconName } from './Icon';
 import { TokenPreview } from './TokenPreview';
 
@@ -13,6 +14,8 @@ interface FoundationTabProps {
     tokens: NestedTokens;
     tokenMap: Record<string, string>;
     onTokenClick?: (token: any) => void;
+    copyFormat: CopyFormat;
+    onCopy: (value: string, label: string, tokenPath?: string) => Promise<void>;
 }
 
 interface Section {
@@ -101,7 +104,7 @@ function flattenColorFamilies(node: unknown, path: string[] = [], families: Reco
 /**
  * FoundationTab - Displays all foundation tokens with scroll-spy navigation
  */
-export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabProps) {
+export function FoundationTab({ tokens, tokenMap, onTokenClick, copyFormat, onCopy }: FoundationTabProps) {
     const rafId = useRef<number | null>(null);
     const pendingSectionId = useRef<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
@@ -268,6 +271,8 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                                     colorFamilies={section.tokens}
                                     tokenMap={tokenMap}
                                     onTokenClick={onTokenClick}
+                                    onCopy={onCopy}
+                                    copyFormat={copyFormat}
                                 />
                             </div>
                         )}
@@ -279,7 +284,12 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
                                     <h2 className="ftd-section-title">{section.name}</h2>
                                     <span className="ftd-section-count">{section.count} tokens</span>
                                 </div>
-                                <GenericTokenDisplay tokens={section.tokens} tokenType={section.name} />
+                                <GenericTokenDisplay 
+                                    tokens={section.tokens} 
+                                    tokenType={section.name}
+                                    onCopy={onCopy}
+                                    copyFormat={copyFormat}
+                                />
                             </div>
                         )}
                     </React.Fragment>
@@ -289,22 +299,12 @@ export function FoundationTab({ tokens, tokenMap, onTokenClick }: FoundationTabP
     );
 }
 
-function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; tokenType: string }) {
+function GenericTokenDisplay({ tokens, tokenType, onCopy, copyFormat }: { tokens: NestedTokens; tokenType: string; onCopy: (value: string, label: string, tokenPath?: string) => Promise<void>; copyFormat: CopyFormat }) {
     const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const toastIdRef = useRef(0);
     const toastTimerRef = useRef<number | null>(null);
 
     const entries = findAllTokens(tokens);
-
-    const showToast = (value: string) => {
-        const id = ++toastIdRef.current;
-        setCopiedToast({ id, value });
-        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = window.setTimeout(() => {
-            setCopiedToast((current) => (current && current.id === id ? null : current));
-            toastTimerRef.current = null;
-        }, 2000);
-    };
 
     useEffect(() => () => {
         if (toastTimerRef.current !== null) {
@@ -312,10 +312,11 @@ function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; toke
         }
     }, []);
 
-    const handleCopy = async (value: string) => {
-        const success = await copyToClipboard(value);
-        if (success) showToast(value);
+    const handleCopy = async (value: string, label: string, tokenPath: string) => {
+        await onCopy(value, label, tokenPath);
     };
+
+    const getFormattedVar = (path: string) => formatTokenPath(path, copyFormat);
 
     if (entries.length === 0) return null;
 
@@ -324,6 +325,7 @@ function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; toke
             <div className="ftd-token-grid">
                 {entries.map(({ path, token }) => {
                     const cssVar = toCssVariable(path);
+                    const formattedVar = getFormattedVar(path);
                     const varValue = `var(${cssVar})`;
 
                     return (
@@ -331,7 +333,7 @@ function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; toke
                             key={path}
                             className="ftd-display-card ftd-clickable-card"
                             data-token-name={path}
-                            onClick={() => void handleCopy(varValue)}
+                            onClick={() => void handleCopy(varValue, cssVar, path)}
                             title={`Click to copy: ${varValue}`}
                         >
                             <div className="ftd-token-preview-container">
@@ -343,24 +345,8 @@ function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; toke
                             </div>
                             <p className="ftd-token-card-label">{path}</p>
                             <div className="ftd-token-values-row">
-                                <span
-                                    className="ftd-token-css-var"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(cssVar);
-                                    }}
-                                >
-                                    {cssVar}
-                                </span>
-                                <span
-                                    className="ftd-token-hex"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleCopy(String(token.value));
-                                    }}
-                                >
-                                    {token.value}
-                                </span>
+                                <span className="ftd-token-css-var">{formattedVar}</span>
+                                <span className="ftd-token-hex">{token.value}</span>
                             </div>
                         </div>
                     );
@@ -391,38 +377,22 @@ function GenericTokenDisplay({ tokens, tokenType }: { tokens: NestedTokens; toke
 function ColorFamiliesDisplay({
     colorFamilies,
     tokenMap,
-    onTokenClick
+    onTokenClick,
+    onCopy,
+    copyFormat
 }: {
     colorFamilies: any;
     tokenMap: Record<string, string>;
     onTokenClick?: (token: any) => void;
+    onCopy: (value: string, label: string, tokenPath?: string) => Promise<void>;
+    copyFormat: CopyFormat;
 }) {
-    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
-    const toastIdRef = useRef(0);
-    const toastTimerRef = useRef<number | null>(null);
-
-    const showToast = (value: string) => {
-        const id = ++toastIdRef.current;
-        setCopiedToast({ id, value });
-        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = window.setTimeout(() => {
-            setCopiedToast((current) => (current && current.id === id ? null : current));
-            toastTimerRef.current = null;
-        }, 2000);
-    };
-
-    useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
-    }, []);
-
-    const handleCopy = async (colorValue: string, cssVar: string) => {
-        const fullCssVar = `var(${cssVar})`;
-        const success = await copyToClipboard(fullCssVar);
-        if (success) showToast(fullCssVar);
+    const handleCopy = async (colorValue: string, cssVar: string, tokenPath: string) => {
+        await onCopy(colorValue, cssVar, tokenPath);
         onTokenClick?.({ value: colorValue, cssVariable: cssVar });
     };
+
+    const getFormattedVar = (path: string) => formatTokenPath(path, copyFormat);
 
     return (
         <div className="ftd-color-family-container">
@@ -444,6 +414,7 @@ function ColorFamiliesDisplay({
                                 const textColor = getContrastColor(bgColor);
                                 const cssVar = `--base-${familyName}-${shadeName}`;
                                 const tokenFullName = `${familyName}-${shadeName}`;
+                                const formattedVar = getFormattedVar(`base.${familyName}.${shadeName}`);
 
                                 return (
                                     <div
@@ -451,11 +422,11 @@ function ColorFamiliesDisplay({
                                         className="ftd-color-shade"
                                         data-token-name={tokenFullName}
                                         style={{ backgroundColor: bgColor, color: textColor }}
-                                        onClick={() => handleCopy(bgColor, cssVar)}
+                                        onClick={() => handleCopy(bgColor, cssVar, `${familyName}.${shadeName}`)}
                                     >
                                         <span className="ftd-color-shade-label">{shadeName}</span>
                                         <div className="ftd-shade-values">
-                                            <code className="ftd-shade-css-var">{cssVar}</code>
+                                            <code className="ftd-shade-css-var">{formattedVar}</code>
                                             <code className="ftd-shade-hex">{bgColor}</code>
                                         </div>
                                     </div>
@@ -466,23 +437,6 @@ function ColorFamiliesDisplay({
                 );
             })}
 
-            {copiedToast &&
-                (typeof document !== 'undefined'
-                    ? createPortal(
-                        <div key={copiedToast.id} className="ftd-copied-toast">
-                            <div className="ftd-toast-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </div>
-                            <div className="ftd-toast-content">
-                                <span className="ftd-toast-label">Copied</span>
-                                <span className="ftd-toast-value">{copiedToast.value}</span>
-                            </div>
-                        </div>,
-                        document.body
-                    )
-                    : null)}
         </div>
     );
 }

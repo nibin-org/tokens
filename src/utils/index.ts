@@ -4,3 +4,4 @@ export * from './dimension';
 export * from './ui';
 export * from './exportUtils';
 export * from './searchUtils';
+export * from './formatUtils';

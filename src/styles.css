@@ -5258,3 +5258,105 @@ body {
   color: var(--ftd-primary);
   transform: scale(1.02);
 }
+
+
+/* ============================================
+   FORMAT SELECTOR - Global Copy Format
+   ============================================ */
+
+.ftd-format-selector {
+  position: relative;
+  display: inline-flex;
+}
+
+.ftd-format-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--ftd-primary-fade);
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.15);
+  border-radius: 12px;
+  color: var(--ftd-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ftd-format-button:hover {
+  background: rgba(var(--ftd-primary-rgb), 0.15);
+  border-color: rgba(var(--ftd-primary-rgb), 0.3);
+  transform: translateY(-1px);
+}
+
+.ftd-format-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ftd-format-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--ftd-bg-card);
+  border: 1px solid var(--ftd-border);
+  border-radius: 12px;
+  box-shadow: 
+    0 20px 40px rgba(15, 23, 42, 0.15),
+    0 8px 16px rgba(15, 23, 42, 0.1);
+  padding: 8px;
+  z-index: 1000;
+  animation: ftd-menu-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .ftd-format-dropdown {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: 
+    0 24px 48px rgba(0, 0, 0, 0.5),
+    0 12px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+}
+
+.ftd-format-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ftd-text-main);
+}
+
+.ftd-format-option:hover {
+  background: rgba(var(--ftd-primary-rgb), 0.08);
+}
+
+.ftd-format-option.active {
+  background: rgba(var(--ftd-primary-rgb), 0.12);
+  color: var(--ftd-primary);
+  font-weight: 600;
+}
+
+.ftd-format-check {
+  width: 16px;
+  height: 16px;
+  color: var(--ftd-primary);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ftd-format-option.active .ftd-format-check {
+  opacity: 1;
+}

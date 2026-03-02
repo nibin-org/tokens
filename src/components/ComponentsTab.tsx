@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NestedTokens } from '../types';
+import type { CopyFormat } from './FormatSelector';
 import { getContrastColor } from '../utils/color';
-import { copyToClipboard } from '../utils/ui';
+import { formatTokenPath } from '../utils/formatUtils';
 import { Icon } from './Icon';
 import { findAllTokens, resolveTokenValue, toCssVariable } from '../utils/core';
 
@@ -12,6 +13,8 @@ interface ComponentsTabProps {
     tokens: NestedTokens;
     tokenMap: Record<string, string>;
     onTokenClick?: (token: any) => void;
+    copyFormat: CopyFormat;
+    onCopy: (value: string, label: string, tokenPath?: string) => Promise<void>;
 }
 
 interface ParsedToken {
@@ -29,13 +32,10 @@ interface Section {
     groups: Record<string, ParsedToken[]>;
 }
 
-export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabProps) {
+export function ComponentsTab({ tokens, tokenMap, onTokenClick, copyFormat, onCopy }: ComponentsTabProps) {
     const rafId = useRef<number | null>(null);
     const pendingSectionId = useRef<string | null>(null);
-    const [copiedToast, setCopiedToast] = useState<{ id: number; value: string } | null>(null);
     const [activeSection, setActiveSection] = useState<string>('');
-    const toastIdRef = useRef(0);
-    const toastTimerRef = useRef<number | null>(null);
 
     // Parse all component tokens dynamically
     const sections = useMemo<Section[]>(() => {
@@ -172,26 +172,8 @@ export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabP
         }
     };
 
-    const showToast = (value: string) => {
-        const id = ++toastIdRef.current;
-        setCopiedToast({ id, value });
-        if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = window.setTimeout(() => {
-            setCopiedToast((current) => (current && current.id === id ? null : current));
-            toastTimerRef.current = null;
-        }, 2000);
-    };
-
-    useEffect(() => () => {
-        if (toastTimerRef.current !== null) {
-            window.clearTimeout(toastTimerRef.current);
-        }
-    }, []);
-
     const handleCopy = async (token: ParsedToken) => {
-        const fullCssVar = `var(${token.cssVariable})`;
-        const success = await copyToClipboard(fullCssVar);
-        if (success) showToast(fullCssVar);
+        await onCopy(token.resolvedValue, token.cssVariable, token.name);
         onTokenClick?.(token);
     };
 
@@ -241,6 +223,7 @@ export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabP
                                     {groupTokens.map((token) => {
                                         const isAlias = token.value.startsWith('{');
                                         const isColor = token.type === 'color';
+                                        const formattedVar = formatTokenPath(token.name, copyFormat);
                                         
                                         if (isColor) {
                                             const bgColor = token.resolvedValue || token.value;
@@ -260,7 +243,7 @@ export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabP
                                                     <div className="ftd-token-info">
                                                         <p className="ftd-token-name">{token.name.split('.').pop()}</p>
                                                         <div className="ftd-token-values-row">
-                                                            <span className="ftd-token-css-var">{token.cssVariable}</span>
+                                                            <span className="ftd-token-css-var">{formattedVar}</span>
                                                             <span className="ftd-token-hex">
                                                                 {isAlias ? token.resolvedValue?.substring(0, 9) : token.value.substring(0, 9)}
                                                             </span>
@@ -281,7 +264,7 @@ export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabP
                                                 <div className="ftd-token-info">
                                                     <p className="ftd-token-name">{token.name.split('.').pop()}</p>
                                                     <div className="ftd-token-values-row">
-                                                        <span className="ftd-token-css-var">{token.cssVariable}</span>
+                                                        <span className="ftd-token-css-var">{formattedVar}</span>
                                                         <span className="ftd-token-hex">{token.resolvedValue}</span>
                                                     </div>
                                                     {isAlias && (
@@ -296,24 +279,6 @@ export function ComponentsTab({ tokens, tokenMap, onTokenClick }: ComponentsTabP
                         ))}
                     </div>
                 ))}
-
-                {copiedToast &&
-                    (typeof document !== 'undefined'
-                        ? createPortal(
-                            <div className="ftd-copied-toast" role="status" aria-live="polite" key={copiedToast.id}>
-                                <div className="ftd-toast-icon">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                </div>
-                                <div className="ftd-toast-content">
-                                    <span className="ftd-toast-label">Copied</span>
-                                    <span className="ftd-toast-value">{copiedToast.value}</span>
-                                </div>
-                            </div>,
-                            document.body
-                        )
-                        : null)}
             </div>
         </div>
     );
