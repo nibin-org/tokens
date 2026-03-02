@@ -101,6 +101,20 @@ function flattenColorFamilies(node: unknown, path: string[] = [], families: Reco
     return families;
 }
 
+function formatTokenDisplayValue(value: unknown): string {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    if (value === null || value === undefined) {
+        return '';
+    }
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
 /**
  * FoundationTab - Displays all foundation tokens with scroll-spy navigation
  */
@@ -327,6 +341,7 @@ function GenericTokenDisplay({ tokens, tokenType, onCopy, copyFormat }: { tokens
                     const cssVar = toCssVariable(path);
                     const formattedVar = getFormattedVar(path);
                     const varValue = `var(${cssVar})`;
+                    const displayValue = formatTokenDisplayValue(token.value);
 
                     return (
                         <div
@@ -339,14 +354,14 @@ function GenericTokenDisplay({ tokens, tokenType, onCopy, copyFormat }: { tokens
                             <div className="ftd-token-preview-container">
                                 <TokenPreview 
                                     type={tokenType}
-                                    value={String(token.value)}
+                                    value={displayValue}
                                     name={path}
                                 />
                             </div>
                             <p className="ftd-token-card-label">{path}</p>
                             <div className="ftd-token-values-row">
                                 <span className="ftd-token-css-var">{formattedVar}</span>
-                                <span className="ftd-token-hex">{token.value}</span>
+                                <span className="ftd-token-hex">{displayValue}</span>
                             </div>
                         </div>
                     );
