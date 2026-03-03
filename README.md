@@ -273,15 +273,32 @@ Each accepts `tokens` and optional `title`.
 ### Snapshot History
 
 ```tsx
+import { TokenDocumentation, createGitHubSnapshotHistory } from 'tokvista'
+
 <TokenDocumentation
   tokens={tokens}
-  snapshotHistory={{
-    enabled: true,
-    accessMode: 'full', // or 'preview'
-    historyEndpoint: 'https://your-relay.example.com/version-history?...',
-    sourceUrl: 'https://raw.githubusercontent.com/org/repo/main/tokens.json',
-  }}
+  snapshotHistory={createGitHubSnapshotHistory({
+    owner: 'org',
+    repo: 'repo',
+    branch: 'main',
+    path: 'tokens.json',
+    accessMode: 'full', // use "preview" for hosted teaser links
+  })}
 />
+```
+
+Generate share links for hosted preview:
+
+```ts
+import { createGitHubPreviewUrl } from 'tokvista'
+
+const livePreview = createGitHubPreviewUrl({
+  owner: 'org',
+  repo: 'repo',
+  branch: 'main',
+  path: 'tokens.json',
+  previewBaseUrl: 'https://tokvista-demo.vercel.app/',
+})
 ```
 
 ---
@@ -318,6 +335,7 @@ node dist/bin/tokvista.js ../tokens.json --port 4000
 # demo app
 cd demo
 npm install
+# optional: copy demo/.env.example to demo/.env.local and set NEXT_PUBLIC_DEMO_SOURCE
 npm run dev
 ```
 

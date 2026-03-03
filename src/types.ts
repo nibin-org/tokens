@@ -109,6 +109,23 @@ export interface SnapshotHistoryOptions {
   maxPreviewDiffs?: number;
 }
 
+export interface GitHubSnapshotProjectConfig {
+  owner: string;
+  repo: string;
+  path: string;
+  branch?: string;
+  perPage?: number;
+}
+
+export interface GitHubSnapshotHistoryConfig extends GitHubSnapshotProjectConfig {
+  accessMode?: SnapshotAccessMode;
+  title?: string;
+}
+
+export interface GitHubPreviewLinkConfig extends GitHubSnapshotProjectConfig {
+  previewBaseUrl: string;
+}
+
 export interface ColorDisplayProps {
   baseColors?: NestedTokens;
   fillColors?: NestedTokens;

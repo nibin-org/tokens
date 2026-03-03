@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { TokenDocumentation } from 'tokvista'
+import { TokenDocumentation, buildGitHubHistoryEndpoint } from 'tokvista'
 import 'tokvista/styles.css'
 import defaultTokens from '../../../tokens.json' // Real tokens from Figma Token Studio
 import styles from './page.module.css'
@@ -61,6 +61,7 @@ const SNAPSHOT_TEASER_DIFF_LIMIT = 5
 const SNAPSHOT_FULL_DIFF_LIMIT = 15
 const SNAPSHOT_HISTORY_RENDER_CAP = 120
 const SNAPSHOT_COMPARE_RANGE_DISABLED_MESSAGE = 'Compare range unlocks after installing tokvista in your project.'
+const SOURCE_SYNC_INTERVAL_MS = 15000
 
 type PackageManagerId = (typeof QUICK_START_COMMANDS)[number]['id']
 type ConversionVariant = 'a' | 'b'
@@ -72,6 +73,7 @@ type SnapshotMetricId =
   | 'quickstart_copy'
   | 'install_click'
 type SnapshotMetrics = Record<SnapshotMetricId, number>
+type HistoryDiffFilter = 'all' | 'added' | 'changed' | 'removed'
 
 const SNAPSHOT_METRIC_LABELS: Array<{ id: SnapshotMetricId; label: string }> = [
   { id: 'history_open', label: 'History Opens' },
@@ -202,7 +204,13 @@ function parseSourceContext(source: string): SourceContext | null {
         const [owner, repo, branch, ...filePath] = parts
         const file = filePath.join('/')
         const projectId = `${owner}/${repo}`
-        const historyEndpoint = `https://api.github.com/repos/${owner}/${repo}/commits?path=${file}&sha=${branch}&per_page=15`
+        const historyEndpoint = buildGitHubHistoryEndpoint({
+          owner,
+          repo,
+          branch,
+          path: file,
+          perPage: 15,
+        })
         return {
           sourceUrl: parsed.toString(),
           sourceHost: 'github.com',
@@ -458,14 +466,15 @@ function getSourceFromQuery(): string {
   if (typeof window === 'undefined') return ''
   const params = new URLSearchParams(window.location.search)
   const source = params.get('source') || ''
-  if (!source) return ''
-  try {
-    const parsed = new URL(source)
-    if (!/^https?:$/i.test(parsed.protocol)) return ''
-    return parsed.toString()
-  } catch {
-    return ''
-  }
+  return normalizeHttpUrl(source)
+}
+
+function getResolvedSource(): string {
+  const sourceFromQuery = getSourceFromQuery()
+  if (sourceFromQuery) return sourceFromQuery
+
+  const envFallback = normalizeHttpUrl(process.env.NEXT_PUBLIC_DEMO_SOURCE || '')
+  return envFallback
 }
 
 function withCacheBust(url: string): string {
@@ -483,6 +492,7 @@ export default function Home() {
   const [subtitle, setSubtitle] = useState(
     `Real tokens from Figma Token Studio - Version ${process.env.NEXT_PUBLIC_PACKAGE_VERSION}`
   )
+  const [sourceLastSyncedAt, setSourceLastSyncedAt] = useState<number | null>(null)
   const [loadError, setLoadError] = useState('')
   const [isSharedPreview, setIsSharedPreview] = useState(false)
   const [sharedSourceLabel, setSharedSourceLabel] = useState('')
@@ -495,13 +505,22 @@ export default function Home() {
   const [historyItems, setHistoryItems] = useState<SnapshotHistoryItem[]>([])
   const [selectedHistoryId, setSelectedHistoryId] = useState('')
   const [selectedSnapshotTokens, setSelectedSnapshotTokens] = useState<TokensPayload | null>(null)
+  const [compareBaseTokens, setCompareBaseTokens] = useState<TokensPayload | null>(null)
   const [historyCompare, setHistoryCompare] = useState<CompareSummary>({ added: 0, changed: 0, removed: 0 })
   const [historyStatus, setHistoryStatus] = useState('')
+  const [historyDiffFilter, setHistoryDiffFilter] = useState<HistoryDiffFilter>('all')
   const [copiedId, setCopiedId] = useState('')
   const [preferredPm, setPreferredPm] = useState<PackageManagerId>('npm')
   const [conversionVariant, setConversionVariant] = useState<ConversionVariant>('a')
   const [isHistoryHintDismissed, setIsHistoryHintDismissed] = useState(false)
   const [snapshotMetrics, setSnapshotMetrics] = useState<SnapshotMetrics>(createEmptySnapshotMetrics())
+  const sourceFromQuery = useMemo(() => getSourceFromQuery(), [])
+  const resolvedSource = useMemo(() => sourceFromQuery || getResolvedSource(), [sourceFromQuery])
+  const fallbackSourceContext = useMemo(() => {
+    if (!resolvedSource) return null
+    return parseSourceContext(resolvedSource)
+  }, [resolvedSource])
+  const effectiveSourceContext = sourceContext || fallbackSourceContext
   const hasInstallIntent = isSharedPreview
   const snapshotActionsLocked = hasInstallIntent
   const lockContent = useMemo(() => getLockContent(conversionVariant), [conversionVariant])
@@ -512,25 +531,26 @@ export default function Home() {
     return preferred ? [preferred, ...rest] : QUICK_START_COMMANDS
   }, [preferredPm])
   const renderedHistoryItems = useMemo(() => historyItems.slice(0, SNAPSHOT_HISTORY_RENDER_CAP), [historyItems])
-  const fallbackSourceContext = useMemo(() => {
-    const source = getSourceFromQuery()
-    if (!source) return null
-    return parseSourceContext(source)
-  }, [])
-  const effectiveSourceContext = sourceContext || fallbackSourceContext
   const selectedHistoryItem = useMemo(
     () => historyItems.find((item) => item.id === selectedHistoryId) || null,
     [historyItems, selectedHistoryId]
   )
   const selectedHistoryRestoreUrl = useMemo(() => getRestorableUrl(selectedHistoryItem), [selectedHistoryItem])
-  const historyAvailable = Boolean(sourceContext?.historyEndpoint)
   const installIntentLabel = useMemo(
     () => (sharedSourceLabel ? sharedSourceLabel.toLowerCase().replace(/\s+/g, '-') : 'shared-preview'),
     [sharedSourceLabel]
   )
+  const hasConfiguredSource = Boolean(resolvedSource)
+  const shouldBlockDocumentation = hasConfiguredSource && Boolean(loadError)
+  const subtitleWithSync = useMemo(() => {
+    if (!hasConfiguredSource || !sourceLastSyncedAt) return subtitle
+    const syncedAt = new Date(sourceLastSyncedAt).toLocaleTimeString()
+    return `${subtitle} · Last sync ${syncedAt} · Auto refresh ${Math.round(SOURCE_SYNC_INTERVAL_MS / 1000)}s`
+  }, [hasConfiguredSource, sourceLastSyncedAt, subtitle])
 
   useEffect(() => {
     let disposed = false
+    let inFlight = false
     const inlineTokens = getInlineTokensFromHash()
     if (inlineTokens) {
       setTokens(inlineTokens)
@@ -539,13 +559,34 @@ export default function Home() {
       setSourceContext(null)
       setIsSharedPreview(true)
       setLoadError('')
+      setSourceLastSyncedAt(Date.now())
       return
     }
 
-    const source = getSourceFromQuery()
-    if (!source) return
+    const source = resolvedSource
+    if (!source) {
+      setSourceLastSyncedAt(null)
+      return
+    }
+
+    if (sourceFromQuery) {
+      setIsSharedPreview(true)
+    }
+
+    try {
+      const parsedSource = new URL(source)
+      setSourceContext(parseSourceContext(parsedSource.toString()))
+      if (sourceFromQuery) {
+        setSubtitle(`Shared preview from ${parsedSource.host}`)
+        setSharedSourceLabel(parsedSource.host)
+      }
+    } catch {
+      setSourceContext(null)
+    }
 
     async function loadFromSource() {
+      if (inFlight) return
+      inFlight = true
       try {
         const response = await fetch(withCacheBust(source), { cache: 'no-store' })
         if (!response.ok) {
@@ -559,23 +600,32 @@ export default function Home() {
         setTokens(parsed as TokensPayload)
         const parsedSource = new URL(source)
         const host = parsedSource.host
-        setSourceContext(parseSourceContext(parsedSource.toString()))
-        setSubtitle(`Shared preview from ${host}`)
-        setSharedSourceLabel(host)
-        setIsSharedPreview(true)
+        if (sourceFromQuery) {
+          setSubtitle(`Shared preview from ${host}`)
+          setSharedSourceLabel(host)
+          setIsSharedPreview(true)
+        }
         setLoadError('')
+        setSourceLastSyncedAt(Date.now())
       } catch (error) {
         if (disposed) return
         const message = error instanceof Error ? error.message : String(error)
+        setTokens({})
         setLoadError(message)
+      } finally {
+        inFlight = false
       }
     }
 
     void loadFromSource()
+    const syncTimer = window.setInterval(() => {
+      void loadFromSource()
+    }, SOURCE_SYNC_INTERVAL_MS)
     return () => {
       disposed = true
+      window.clearInterval(syncTimer)
     }
-  }, [])
+  }, [resolvedSource, sourceFromQuery])
 
   useEffect(() => {
     if (!isQuickStartOpen && !isAdvancedInfoOpen && !isHistoryOpen) return
@@ -605,42 +655,76 @@ export default function Home() {
   }, [copiedId])
 
   useEffect(() => {
-    if (!selectedSnapshotTokens) return
-    setHistoryCompare(buildCompareSummary(tokens, selectedSnapshotTokens))
-  }, [tokens, selectedSnapshotTokens])
+    setHistoryDiffFilter('all')
+  }, [selectedHistoryId])
 
-  async function loadSnapshotVersion(item: SnapshotHistoryItem) {
+  useEffect(() => {
+    if (!isHistoryOpen) return
+    if (!effectiveSourceContext?.historyEndpoint) return
+    const historySyncTimer = window.setInterval(() => {
+      void loadSnapshotHistory(true)
+    }, SOURCE_SYNC_INTERVAL_MS)
+    return () => window.clearInterval(historySyncTimer)
+  }, [isHistoryOpen, effectiveSourceContext?.historyEndpoint, selectedHistoryId])
+
+  async function loadSnapshotVersion(item: SnapshotHistoryItem, comparisonItems: SnapshotHistoryItem[] = historyItems) {
     setSelectedHistoryId(item.id)
     setHistoryStatus('')
-    const targetRawUrl = item.rawUrl
-    if (!targetRawUrl) {
+    const selectedRawUrl = item.rawUrl
+    if (!selectedRawUrl) {
       setSelectedSnapshotTokens(null)
+      setCompareBaseTokens(null)
       setHistoryCompare({ added: 0, changed: 0, removed: 0 })
       setHistoryStatus('Selected snapshot has no raw token URL.')
       return
     }
+
+    const selectedIndex = comparisonItems.findIndex((entry) => entry.id === item.id)
+    const previousItem = selectedIndex >= 0 ? comparisonItems[selectedIndex + 1] || null : null
+
     try {
-      const response = await fetch(withCacheBust(targetRawUrl), { cache: 'no-store' })
-      if (!response.ok) {
-        throw new Error(`Snapshot load failed (${response.status})`)
+      const selectedResponse = await fetch(withCacheBust(selectedRawUrl), { cache: 'no-store' })
+      if (!selectedResponse.ok) {
+        throw new Error(`Snapshot load failed (${selectedResponse.status})`)
       }
-      const parsed = await response.json()
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      const selectedParsed = await selectedResponse.json()
+      if (!selectedParsed || typeof selectedParsed !== 'object' || Array.isArray(selectedParsed)) {
         throw new Error('Snapshot payload is invalid.')
       }
-      const nextSnapshot = parsed as TokensPayload
+
+      let previousTokens: TokensPayload = {}
+      if (previousItem?.rawUrl) {
+        const previousResponse = await fetch(withCacheBust(previousItem.rawUrl), { cache: 'no-store' })
+        if (!previousResponse.ok) {
+          throw new Error(`Previous snapshot load failed (${previousResponse.status})`)
+        }
+        const previousParsed = await previousResponse.json()
+        if (!previousParsed || typeof previousParsed !== 'object' || Array.isArray(previousParsed)) {
+          throw new Error('Previous snapshot payload is invalid.')
+        }
+        previousTokens = previousParsed as TokensPayload
+      }
+
+      const nextSnapshot = selectedParsed as TokensPayload
       setSelectedSnapshotTokens(nextSnapshot)
-      setHistoryCompare(buildCompareSummary(tokens, nextSnapshot))
+      setCompareBaseTokens(previousTokens)
+      setHistoryCompare(buildCompareSummary(nextSnapshot, previousTokens))
+      if (!previousItem) {
+        setHistoryStatus('Initial snapshot baseline. No previous commit available for comparison.')
+      } else if (!previousItem.rawUrl) {
+        setHistoryStatus('Previous snapshot has no raw URL. Compared against an empty baseline.')
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setSelectedSnapshotTokens(null)
+      setCompareBaseTokens(null)
       setHistoryCompare({ added: 0, changed: 0, removed: 0 })
       setHistoryStatus(message)
     }
   }
 
   async function loadSnapshotHistory(force = false) {
-    const historyEndpoint = sourceContext?.historyEndpoint
+    const historyEndpoint = effectiveSourceContext?.historyEndpoint
     if (!historyEndpoint) {
       setHistoryError('Snapshot history is available only for live relay links.')
       return
@@ -656,19 +740,24 @@ export default function Home() {
       }
       const payload = await response.json()
       const items = normalizeHistoryItems(
-        sourceContext?.sourceHost === 'github.com' ? payload : (payload as { items?: unknown }).items,
-        sourceContext?.sourceUrl
+        effectiveSourceContext?.sourceHost === 'github.com' ? payload : (payload as { items?: unknown }).items,
+        effectiveSourceContext?.sourceUrl
       )
       setHistoryItems(items)
       if (!items.length) {
         setSelectedHistoryId('')
         setSelectedSnapshotTokens(null)
+        setCompareBaseTokens(null)
         setHistoryCompare({ added: 0, changed: 0, removed: 0 })
         setHistoryStatus('No snapshot history available yet.')
         return
       }
-      const selected = items.find((item) => item.id === selectedHistoryId) || items[0]
-      await loadSnapshotVersion(selected)
+      const selectedFromState = items.find((item) => item.id === selectedHistoryId)
+      const selected = selectedFromState || (items.length > 1 ? items[1] : items[0])
+      await loadSnapshotVersion(selected, items)
+      if (!selectedFromState && items.length === 1) {
+        setHistoryStatus('Only one snapshot found. Add another commit touching this token file to compare changes.')
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setHistoryError(message)
@@ -883,9 +972,13 @@ export default function Home() {
     })
 
     const orderedChanges = [...changes].sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
+    const filteredChanges =
+      historyDiffFilter === 'all'
+        ? orderedChanges
+        : orderedChanges.filter((change) => change.changeType === historyDiffFilter)
     const visibleCount = snapshotActionsLocked ? SNAPSHOT_TEASER_DIFF_LIMIT : SNAPSHOT_FULL_DIFF_LIMIT
-    const limitedChanges = orderedChanges.slice(0, visibleCount)
-    const hiddenCount = Math.max(orderedChanges.length - limitedChanges.length, 0)
+    const limitedChanges = filteredChanges.slice(0, visibleCount)
+    const hiddenCount = Math.max(filteredChanges.length - limitedChanges.length, 0)
 
     const groups = limitedChanges.reduce((acc, change) => {
       if (!acc[change.group]) acc[change.group] = []
@@ -895,10 +988,15 @@ export default function Home() {
 
     return (
       <div className={styles.visualDiffSection}>
-        <div className={styles.visualDiffTitle}>Visual Comparison ({orderedChanges.length} changes)</div>
+        <div className={styles.visualDiffTitle}>
+          Visual Comparison ({filteredChanges.length}
+          {historyDiffFilter === 'all' ? '' : ` ${historyDiffFilter}`} changes)
+        </div>
         <div className={styles.visualDiffGrid}>
           {limitedChanges.length === 0 ? (
-            <div className={styles.diffEmpty}>No visual changes detected</div>
+            <div className={styles.diffEmpty}>
+              {historyDiffFilter === 'all' ? 'No visual changes detected' : `No ${historyDiffFilter} changes for this snapshot`}
+            </div>
           ) : (
             Object.entries(groups).map(([groupName, groupItems]) => (
               <section key={groupName} className={styles.diffGroup}>
@@ -1011,7 +1109,7 @@ export default function Home() {
         </div>
         {!snapshotActionsLocked && orderedChanges.length > SNAPSHOT_FULL_DIFF_LIMIT && (
           <div className={styles.diffEmpty} style={{ marginTop: '10px' }}>
-            Showing {SNAPSHOT_FULL_DIFF_LIMIT} of {orderedChanges.length} changes
+            Showing {SNAPSHOT_FULL_DIFF_LIMIT} of {filteredChanges.length} changes
           </div>
         )}
       </div>
@@ -1036,22 +1134,43 @@ export default function Home() {
     return normalized
   }
 
+  if (shouldBlockDocumentation) {
+    return (
+      <main>
+        <section className={styles.sourceErrorState} role="alert" aria-live="polite">
+          <h2 className={styles.sourceErrorTitle}>No token JSON loaded</h2>
+          <p className={styles.sourceErrorText}>
+            Could not load tokens from the configured source. Fix the URL and restart the demo server.
+          </p>
+          <code className={styles.sourceErrorCode}>{resolvedSource}</code>
+          <p className={styles.sourceErrorText}>
+            Error: {loadError}
+          </p>
+          <p className={styles.sourceErrorHint}>
+            Set `NEXT_PUBLIC_DEMO_SOURCE` in `demo/.env.local` to a valid `raw.githubusercontent.com/.../tokens.json`
+            URL, then restart `npm run dev`.
+          </p>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main>
       {loadError ? (
         <aside className={styles.errorBanner} role="alert">
-          Preview link failed: {loadError}. Showing bundled tokens instead.
+          Preview link failed: {loadError}
         </aside>
       ) : null}
       <TokenDocumentation
         tokens={tokens}
         title="Tokvista Demo"
-        subtitle={subtitle}
+        subtitle={subtitleWithSync}
         snapshotHistory={{
           enabled: true,
           accessMode: hasInstallIntent ? 'preview' : 'full',
           historyEndpoint: effectiveSourceContext?.historyEndpoint || '',
-          sourceUrl: effectiveSourceContext?.sourceUrl || getSourceFromQuery(),
+          sourceUrl: effectiveSourceContext?.sourceUrl || resolvedSource,
           title: 'Snapshot History',
         }}
         playgroundLock={
@@ -1162,7 +1281,7 @@ export default function Home() {
                 <div>
                   <h3 className={styles.historyPanelTitle}>Snapshot History</h3>
                   <p className={styles.historyPanelMeta}>
-                    {sourceContext?.projectId || 'Unknown project'} · {sourceContext?.environment || 'dev'}
+                    {effectiveSourceContext?.projectId || 'Unknown project'} · {effectiveSourceContext?.environment || 'dev'}
                   </p>
                 </div>
                 <div className={styles.historyPanelActions}>
@@ -1274,19 +1393,50 @@ export default function Home() {
                 <div className={styles.historyDetail}>
                   {selectedHistoryItem ? (
                     <>
-                      <div className={styles.historyCompareTitle}>Current vs Selected Snapshot</div>
+                      <div className={styles.historyCompareTitle}>Selected Snapshot vs Previous Snapshot</div>
                       <div className={styles.historyComparePills}>
-                        <span className={`${styles.historyComparePill} ${styles.historyCompareAdded}`}>
+                        <button
+                          type="button"
+                          aria-pressed={historyDiffFilter === 'all'}
+                          className={`${styles.historyComparePill} ${styles.historyCompareAll} ${
+                            historyDiffFilter === 'all' ? styles.historyComparePillActive : ''
+                          }`}
+                          onClick={() => setHistoryDiffFilter('all')}
+                        >
+                          All ({historyCompare.added + historyCompare.changed + historyCompare.removed})
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={historyDiffFilter === 'added'}
+                          className={`${styles.historyComparePill} ${styles.historyCompareAdded} ${
+                            historyDiffFilter === 'added' ? styles.historyComparePillActive : ''
+                          }`}
+                          onClick={() => setHistoryDiffFilter('added')}
+                        >
                           +{historyCompare.added} Added
-                        </span>
-                        <span className={`${styles.historyComparePill} ${styles.historyCompareChanged}`}>
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={historyDiffFilter === 'changed'}
+                          className={`${styles.historyComparePill} ${styles.historyCompareChanged} ${
+                            historyDiffFilter === 'changed' ? styles.historyComparePillActive : ''
+                          }`}
+                          onClick={() => setHistoryDiffFilter('changed')}
+                        >
                           ~{historyCompare.changed} Changed
-                        </span>
-                        <span className={`${styles.historyComparePill} ${styles.historyCompareRemoved}`}>
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={historyDiffFilter === 'removed'}
+                          className={`${styles.historyComparePill} ${styles.historyCompareRemoved} ${
+                            historyDiffFilter === 'removed' ? styles.historyComparePillActive : ''
+                          }`}
+                          onClick={() => setHistoryDiffFilter('removed')}
+                        >
                           -{historyCompare.removed} Removed
-                        </span>
+                        </button>
                       </div>
-                      {selectedSnapshotTokens && renderVisualDiff(tokens, selectedSnapshotTokens)}
+                      {selectedSnapshotTokens && renderVisualDiff(selectedSnapshotTokens, compareBaseTokens || {})}
                       {snapshotActionsLocked ? (
                         <div className={styles.historyLockedNotice}>
                           <p>{lockContent.message}</p>

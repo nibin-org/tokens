@@ -43,6 +43,7 @@ type SnapshotHistoryItem = {
     previewUrl: string;
     referenceUrl: string;
 };
+type SnapshotDiffFilter = 'all' | 'added' | 'changed' | 'removed';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -318,6 +319,30 @@ function parseColorValue(value: string): string {
     }
 }
 
+function getSnapshotGroup(name: string): string {
+    const parts = name.split('.');
+    if (parts.length <= 2) return name;
+    return parts.slice(0, 3).join('.');
+}
+
+function isNumericTokenType(type: string): boolean {
+    return ['number', 'dimension', 'spacing', 'sizing', 'borderradius', 'opacity', 'lineheight'].includes(type.toLowerCase());
+}
+
+function parseNumericTokenValue(value: string): number | null {
+    const parsed = Number.parseFloat(parseColorValue(value));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getRenderableColor(value: string): string {
+    const normalized = parseColorValue(value).trim();
+    if (!normalized) return '';
+    if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+        return CSS.supports('color', normalized) ? normalized : '';
+    }
+    return normalized;
+}
+
 /**
  * TokenDocumentation - Production-ready Design System Documentation
  * Displays tokens in three main tabs: Foundation, Semantic, and Components
@@ -353,7 +378,9 @@ export function TokenDocumentation({
     const [snapshotItems, setSnapshotItems] = useState<SnapshotHistoryItem[]>([]);
     const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
     const [selectedSnapshotTokens, setSelectedSnapshotTokens] = useState<TokensPayload | null>(null);
+    const [snapshotBaseTokens, setSnapshotBaseTokens] = useState<TokensPayload | null>(null);
     const [snapshotCompare, setSnapshotCompare] = useState<CompareSummary>({ added: 0, changed: 0, removed: 0 });
+    const [snapshotDiffFilter, setSnapshotDiffFilter] = useState<SnapshotDiffFilter>('all');
     const copiedToastIdRef = useRef(0);
     const copiedToastTimerRef = useRef<number | null>(null);
 
@@ -571,11 +598,6 @@ export function TokenDocumentation({
     useEffect(() => {
         if (!showSearch && searchOpen) setSearchOpen(false);
     }, [showSearch, searchOpen]);
-
-    useEffect(() => {
-        if (!selectedSnapshotTokens) return;
-        setSnapshotCompare(buildCompareSummary(normalizedTokenSets as TokensPayload, selectedSnapshotTokens));
-    }, [normalizedTokenSets, selectedSnapshotTokens]);
 
     // Handle scrolling to and highlighting a specific token
     const handleScrollToToken = (tokenName: string, category: string, cssVariable?: string) => {
@@ -826,15 +848,18 @@ export function TokenDocumentation({
     // --- Interaction ---
 
 
-    async function loadSnapshotVersion(item: SnapshotHistoryItem) {
+    async function loadSnapshotVersion(item: SnapshotHistoryItem, comparisonItems: SnapshotHistoryItem[] = snapshotItems) {
         setSelectedSnapshotId(item.id);
         setSnapshotStatus('');
         if (!item.rawUrl) {
             setSelectedSnapshotTokens(null);
+            setSnapshotBaseTokens(null);
             setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
             setSnapshotStatus('Selected snapshot has no raw token URL.');
             return;
         }
+        const selectedIndex = comparisonItems.findIndex((entry) => entry.id === item.id);
+        const previousItem = selectedIndex >= 0 ? comparisonItems[selectedIndex + 1] || null : null;
         try {
             const response = await fetch(item.rawUrl, { cache: 'no-store' });
             if (!response.ok) throw new Error(`Snapshot load failed (${response.status})`);
@@ -842,12 +867,29 @@ export function TokenDocumentation({
             if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
                 throw new Error('Snapshot payload is invalid.');
             }
+            let previousTokens: TokensPayload = {};
+            if (previousItem?.rawUrl) {
+                const previousResponse = await fetch(previousItem.rawUrl, { cache: 'no-store' });
+                if (!previousResponse.ok) throw new Error(`Previous snapshot load failed (${previousResponse.status})`);
+                const previousPayload = await previousResponse.json();
+                if (!previousPayload || typeof previousPayload !== 'object' || Array.isArray(previousPayload)) {
+                    throw new Error('Previous snapshot payload is invalid.');
+                }
+                previousTokens = previousPayload as TokensPayload;
+            }
             const nextSnapshot = payload as TokensPayload;
             setSelectedSnapshotTokens(nextSnapshot);
-            setSnapshotCompare(buildCompareSummary(normalizedTokenSets as TokensPayload, nextSnapshot));
+            setSnapshotBaseTokens(previousTokens);
+            setSnapshotCompare(buildCompareSummary(nextSnapshot, previousTokens));
+            if (!previousItem) {
+                setSnapshotStatus('Initial snapshot baseline. No previous commit available for comparison.');
+            } else if (!previousItem.rawUrl) {
+                setSnapshotStatus('Previous snapshot has no raw URL. Compared against an empty baseline.');
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setSelectedSnapshotTokens(null);
+            setSnapshotBaseTokens(null);
             setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
             setSnapshotStatus(message);
         }
@@ -876,12 +918,17 @@ export function TokenDocumentation({
             if (!items.length) {
                 setSelectedSnapshotId('');
                 setSelectedSnapshotTokens(null);
+                setSnapshotBaseTokens(null);
                 setSnapshotCompare({ added: 0, changed: 0, removed: 0 });
                 setSnapshotStatus('No snapshot history available yet.');
                 return;
             }
-            const selected = items.find((item) => item.id === selectedSnapshotId) || items[0];
-            await loadSnapshotVersion(selected);
+            const selectedFromState = items.find((item) => item.id === selectedSnapshotId);
+            const selected = selectedFromState || (items.length > 1 ? items[1] : items[0]);
+            await loadSnapshotVersion(selected, items);
+            if (!selectedFromState && items.length === 1) {
+                setSnapshotStatus('Only one snapshot found. Add another commit touching this token file to compare changes.');
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setSnapshotError(message);
@@ -926,12 +973,19 @@ export function TokenDocumentation({
     function renderSnapshotDiff(currentTokens: TokensPayload, oldTokens: TokensPayload) {
         const currentMap = flattenTokenLeaves(getComparableRoot(currentTokens));
         const oldMap = flattenTokenLeaves(getComparableRoot(oldTokens));
-        const changes: Array<{ name: string; type: string; oldValue: string; newValue: string; changeType: 'added' | 'changed' | 'removed' }> = [];
+        const changes: Array<{ name: string; type: string; oldValue: string; newValue: string; changeType: 'added' | 'changed' | 'removed'; group: string }> = [];
 
         currentMap.forEach((value, key) => {
             if (!oldMap.has(key)) {
                 const resolvedNew = resolveLeafValue(value.value, currentMap);
-                changes.push({ name: key, type: value.type, oldValue: '', newValue: formatLeafValue(resolvedNew), changeType: 'added' });
+                changes.push({
+                    name: key,
+                    type: value.type,
+                    oldValue: '',
+                    newValue: formatLeafValue(resolvedNew),
+                    changeType: 'added',
+                    group: getSnapshotGroup(key),
+                });
             } else {
                 const oldLeaf = oldMap.get(key);
                 if (oldLeaf && serializeLeaf(oldLeaf) !== serializeLeaf(value)) {
@@ -943,6 +997,7 @@ export function TokenDocumentation({
                         oldValue: formatLeafValue(resolvedOld),
                         newValue: formatLeafValue(resolvedNew),
                         changeType: 'changed',
+                        group: getSnapshotGroup(key),
                     });
                 }
             }
@@ -951,41 +1006,87 @@ export function TokenDocumentation({
         oldMap.forEach((value, key) => {
             if (!currentMap.has(key)) {
                 const resolvedOld = resolveLeafValue(value.value, oldMap);
-                changes.push({ name: key, type: value.type, oldValue: formatLeafValue(resolvedOld), newValue: '', changeType: 'removed' });
+                changes.push({
+                    name: key,
+                    type: value.type,
+                    oldValue: formatLeafValue(resolvedOld),
+                    newValue: '',
+                    changeType: 'removed',
+                    group: getSnapshotGroup(key),
+                });
             }
         });
 
+        const orderedChanges = [...changes].sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+        const filteredChanges =
+            snapshotDiffFilter === 'all'
+                ? orderedChanges
+                : orderedChanges.filter((change) => change.changeType === snapshotDiffFilter);
         const visibleCount = snapshotActionsLocked ? maxPreviewDiffs : maxFullDiffs;
-        const visible = changes.slice(0, visibleCount);
-        const hiddenCount = Math.max(changes.length - visible.length, 0);
+        const visible = filteredChanges.slice(0, visibleCount);
+        const hiddenCount = Math.max(filteredChanges.length - visible.length, 0);
+        const grouped = visible.reduce((acc, change) => {
+            if (!acc[change.group]) acc[change.group] = [];
+            acc[change.group].push(change);
+            return acc;
+        }, {} as Record<string, typeof visible>);
+
+        const renderValueBlock = (label: 'Old' | 'New', rawValue: string, tokenType: string, blurred: boolean) => {
+            const isColor = tokenType.toLowerCase() === 'color';
+            const displayValue = parseColorValue(rawValue);
+            const renderableColor = isColor ? getRenderableColor(rawValue) : '';
+            const numericValue = isNumericTokenType(tokenType) ? parseNumericTokenValue(rawValue) : null;
+            const barWidth = numericValue == null ? 0 : Math.max(12, Math.min(Math.abs(numericValue) * 2, 180));
+            return (
+                <div className={`ftd-snapshot-diff-value ${blurred ? 'is-blurred' : ''}`}>
+                    <span>{label}</span>
+                    <div className="ftd-snapshot-diff-visual">
+                        {isColor ? (
+                            <span
+                                className={`ftd-snapshot-color-swatch ${renderableColor ? '' : 'is-empty'}`}
+                                style={renderableColor ? { backgroundColor: renderableColor } : undefined}
+                            />
+                        ) : null}
+                        {numericValue != null ? (
+                            <span className="ftd-snapshot-size-track">
+                                <span className="ftd-snapshot-size-fill" style={{ width: `${barWidth}px` }} />
+                            </span>
+                        ) : null}
+                        <code>{displayValue}</code>
+                    </div>
+                </div>
+            );
+        };
 
         return (
             <div className="ftd-snapshot-diff">
                 {visible.length === 0 ? (
-                    <div className="ftd-snapshot-empty">No visual changes detected.</div>
+                    <div className="ftd-snapshot-empty">
+                        {snapshotDiffFilter === 'all'
+                            ? 'No visual changes detected.'
+                            : `No ${snapshotDiffFilter} changes for this snapshot.`}
+                    </div>
                 ) : (
-                    visible.map((change) => (
-                        <div key={`${change.name}-${change.changeType}`} className={`ftd-snapshot-diff-card ftd-snapshot-diff-${change.changeType}`}>
-                            <div className="ftd-snapshot-diff-head">
-                                <span className="ftd-snapshot-diff-name">{change.name}</span>
-                                <span className="ftd-snapshot-diff-type">{change.type}</span>
-                            </div>
-                            <div className="ftd-snapshot-diff-body">
-                                {change.oldValue ? (
-                                    <div className={`ftd-snapshot-diff-value ${snapshotActionsLocked ? 'is-blurred' : ''}`}>
-                                        <span>Old</span>
-                                        <code>{parseColorValue(change.oldValue)}</code>
+                    Object.entries(grouped).map(([groupName, groupChanges]) => (
+                        <section key={groupName} className="ftd-snapshot-diff-group">
+                            <div className="ftd-snapshot-diff-group-title">{groupName}</div>
+                            {groupChanges.map((change) => (
+                                <div key={`${change.name}-${change.changeType}`} className={`ftd-snapshot-diff-card ftd-snapshot-diff-${change.changeType}`}>
+                                    <div className="ftd-snapshot-diff-head">
+                                        <span className="ftd-snapshot-diff-name">{change.name}</span>
+                                        <div className="ftd-snapshot-diff-meta">
+                                            <span className={`ftd-snapshot-diff-kind ftd-snapshot-diff-kind-${change.changeType}`}>{change.changeType}</span>
+                                            <span className="ftd-snapshot-diff-type">{change.type}</span>
+                                        </div>
                                     </div>
-                                ) : null}
-                                {change.oldValue && change.newValue ? <span className="ftd-snapshot-arrow">→</span> : null}
-                                {change.newValue ? (
-                                    <div className="ftd-snapshot-diff-value">
-                                        <span>New</span>
-                                        <code>{parseColorValue(change.newValue)}</code>
+                                    <div className="ftd-snapshot-diff-body">
+                                        {change.oldValue ? renderValueBlock('Old', change.oldValue, change.type, snapshotActionsLocked) : null}
+                                        {change.oldValue && change.newValue ? <span className="ftd-snapshot-arrow">-&gt;</span> : null}
+                                        {change.newValue ? renderValueBlock('New', change.newValue, change.type, false) : null}
                                     </div>
-                                ) : null}
-                            </div>
-                        </div>
+                                </div>
+                            ))}
+                        </section>
                     ))
                 )}
                 {snapshotActionsLocked && hiddenCount > 0 ? (
@@ -1017,6 +1118,10 @@ export function TokenDocumentation({
             window.clearTimeout(copiedToastTimerRef.current);
         }
     }, []);
+
+    useEffect(() => {
+        setSnapshotDiffFilter('all');
+    }, [selectedSnapshotId]);
 
     useEffect(() => {
         if (!snapshotOpen) return;
@@ -1308,6 +1413,9 @@ export function TokenDocumentation({
                                                 <span>{item.versionId}</span>
                                                 <span>{formatLocalTimestamp(item.publishedAt)}</span>
                                             </div>
+                                            <div className="ftd-snapshot-item-message" title={item.commitMessage || 'No commit message'}>
+                                                {item.commitMessage || 'No commit message'}
+                                            </div>
                                             {isLocked ? <div className="ftd-snapshot-item-lock">Locked</div> : null}
                                         </button>
                                     );
@@ -1316,33 +1424,80 @@ export function TokenDocumentation({
                             <div className="ftd-snapshot-detail">
                                 {selectedSnapshotItem && selectedSnapshotTokens ? (
                                     <>
-                                        <div className="ftd-snapshot-summary">
-                                            <span className="added">+{snapshotCompare.added} Added</span>
-                                            <span className="changed">~{snapshotCompare.changed} Changed</span>
-                                            <span className="removed">-{snapshotCompare.removed} Removed</span>
+                                        <div className="ftd-snapshot-detail-top">
+                                            <div className="ftd-snapshot-selected-meta">
+                                                <strong>{selectedSnapshotItem.versionId}</strong>
+                                                <span>{formatLocalTimestamp(selectedSnapshotItem.publishedAt)}</span>
+                                                <p title={selectedSnapshotItem.commitMessage || 'No commit message'}>
+                                                    {selectedSnapshotItem.commitMessage || 'No commit message'}
+                                                </p>
+                                            </div>
+                                            <div className="ftd-snapshot-summary">
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={snapshotDiffFilter === 'all'}
+                                                    className={`all ${snapshotDiffFilter === 'all' ? 'active' : ''}`}
+                                                    onClick={() => setSnapshotDiffFilter('all')}
+                                                >
+                                                    All ({snapshotCompare.added + snapshotCompare.changed + snapshotCompare.removed})
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={snapshotDiffFilter === 'added'}
+                                                    className={`added ${snapshotDiffFilter === 'added' ? 'active' : ''}`}
+                                                    onClick={() => setSnapshotDiffFilter('added')}
+                                                >
+                                                    +{snapshotCompare.added} Added
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={snapshotDiffFilter === 'changed'}
+                                                    className={`changed ${snapshotDiffFilter === 'changed' ? 'active' : ''}`}
+                                                    onClick={() => setSnapshotDiffFilter('changed')}
+                                                >
+                                                    ~{snapshotCompare.changed} Changed
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={snapshotDiffFilter === 'removed'}
+                                                    className={`removed ${snapshotDiffFilter === 'removed' ? 'active' : ''}`}
+                                                    onClick={() => setSnapshotDiffFilter('removed')}
+                                                >
+                                                    -{snapshotCompare.removed} Removed
+                                                </button>
+                                            </div>
                                         </div>
-                                        {renderSnapshotDiff(normalizedTokenSets as TokensPayload, selectedSnapshotTokens)}
-                                        <div className="ftd-snapshot-links">
-                                            <button type="button" className="ftd-search-button" onClick={openOldSnapshot} disabled={snapshotActionsLocked}>
-                                                Open snapshot
-                                            </button>
-                                            {selectedSnapshotItem.referenceUrl ? (
+                                        <div className="ftd-snapshot-detail-scroll">
+                                            {renderSnapshotDiff(selectedSnapshotTokens, snapshotBaseTokens || {})}
+                                        </div>
+                                        <div className="ftd-snapshot-detail-footer">
+                                            <div className="ftd-snapshot-links">
+                                                <button type="button" className="ftd-search-button" onClick={openOldSnapshot} disabled={snapshotActionsLocked}>
+                                                    Open snapshot
+                                                </button>
+                                                {selectedSnapshotItem.referenceUrl ? (
+                                                    <button
+                                                        type="button"
+                                                        className="ftd-search-button"
+                                                        onClick={() => window.open(selectedSnapshotItem.referenceUrl, '_blank', 'noopener,noreferrer')}
+                                                        disabled={snapshotActionsLocked}
+                                                    >
+                                                        Open commit
+                                                    </button>
+                                                ) : null}
                                                 <button
                                                     type="button"
                                                     className="ftd-search-button"
-                                                    onClick={() => window.open(selectedSnapshotItem.referenceUrl, '_blank', 'noopener,noreferrer')}
+                                                    onClick={() => void copyRestoreUrl()}
                                                     disabled={snapshotActionsLocked}
                                                 >
-                                                    Open commit
+                                                    Copy restore URL
                                                 </button>
-                                            ) : null}
-                                            <button type="button" className="ftd-search-button" onClick={() => void copyRestoreUrl()} disabled={snapshotActionsLocked}>
-                                                Copy restore URL
-                                            </button>
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="ftd-snapshot-empty">Select a snapshot version to compare.</div>
+                                    <div className="ftd-snapshot-empty ftd-snapshot-detail-empty">Select a snapshot version to compare.</div>
                                 )}
                             </div>
                         </div>
@@ -1377,3 +1532,4 @@ export function TokenDocumentation({
 }
 
 export default TokenDocumentation;
+

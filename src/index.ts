@@ -48,6 +48,9 @@ export type {
   TokenDocumentationProps,
   SnapshotHistoryOptions,
   SnapshotAccessMode,
+  GitHubSnapshotProjectConfig,
+  GitHubSnapshotHistoryConfig,
+  GitHubPreviewLinkConfig,
   ColorDisplayProps,
   SpacingDisplayProps,
   RadiusDisplayProps,
@@ -80,6 +83,10 @@ export {
   detectTokenType,
   createTokenMap,
   resolveTokenValue,
+  buildGitHubRawSourceUrl,
+  buildGitHubHistoryEndpoint,
+  createGitHubSnapshotHistory,
+  createGitHubPreviewUrl,
 } from './utils/index';
 
 export {
