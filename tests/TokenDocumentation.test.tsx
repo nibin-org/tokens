@@ -188,12 +188,10 @@ describe('TokenDocumentation Component', () => {
         expect(fontWeightsSections.length).toBeGreaterThan(0);
     });
 
-    it('should not render a theme toggle control', () => {
+    it('should render a theme toggle control by default', () => {
         render(<TokenDocumentation tokens={mockTokens} />);
-        expect(screen.queryByTitle(/Switch to dark mode/i)).not.toBeInTheDocument();
-        expect(screen.queryByTitle(/Switch to light mode/i)).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /dark/i })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /light/i })).not.toBeInTheDocument();
+        expect(screen.getByTitle(/Switch to light mode/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /light/i })).toBeInTheDocument();
     });
 
     describe('Accessibility', () => {
@@ -206,7 +204,8 @@ describe('TokenDocumentation Component', () => {
 
         it('should have accessible interactive elements', () => {
             render(<TokenDocumentation tokens={mockTokens} />);
-            expect(screen.getByTitle(/Search tokens/i)).toHaveAttribute('aria-label', 'Search tokens');
+            const searchButton = screen.getByRole('button', { name: /Search tokens/i });
+            expect(searchButton).toHaveAttribute('title', expect.stringMatching(/Search tokens/i));
             expect(screen.getByRole('button', { name: /Export/i })).toHaveAttribute('type', 'button');
         });
     });
