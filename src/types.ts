@@ -91,12 +91,29 @@ export interface ThemeConfig {
   enableModeToggle?: boolean;
 }
 
+export type TokenCategory = 'foundation' | 'semantic' | 'components';
+export type TokvistaThemePreference = ThemeMode | 'system';
+
+export interface TokvistaConfig {
+  title?: string;
+  subtitle?: string;
+  logo?: string;
+  tokens?: string;
+  theme?: TokvistaThemePreference;
+  brandColor?: string;
+  categories?: TokenCategory[];
+  defaultTab?: TokenCategory;
+  showSearch?: boolean;
+}
+
 // Component props
 export interface TokenDocumentationProps {
   tokens: FigmaTokens;
   title?: string;
   subtitle?: string;
+  logo?: string;
   defaultTab?: string;
+  categories?: TokenCategory[];
   showSearch?: boolean;
   fontFamilySans?: string;
   fontFamilyMono?: string;

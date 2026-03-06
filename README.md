@@ -41,7 +41,37 @@ npx tokvista tokens.json
 Optional flags:
 
 ```bash
-npx tokvista ./tokens.json --port 4000 --no-open
+npx tokvista ./tokens.json --config ./tokvista.config.ts --port 4000 --no-open
+```
+
+Create a starter config (recommended for branding/customization):
+
+```bash
+npx tokvista init
+```
+
+`init` asks for title/subtitle/logo/theme/brand color/categories, writes `tokvista.config.ts`, and starts a live preview automatically.
+
+### Tokvista Config (Recommended)
+
+`tokvista init` creates `tokvista.config.ts` in your project root. You can customize it like this:
+
+```ts
+export default {
+  title: 'Acme Design System',
+  subtitle: 'Interactive design tokens documentation',
+  logo: './logo.svg',
+  tokens: './tokens.json',
+  theme: 'system',
+  brandColor: '#6366f1',
+  categories: ['foundation', 'semantic', 'components'],
+}
+```
+
+Then run:
+
+```bash
+npx tokvista
 ```
 
 ### Option B: React Component Library
@@ -62,9 +92,13 @@ export default function DesignSystem() {
 
 ### CLI Options
 
+- `tokvista init` - Interactive setup for `tokvista.config.ts` + auto preview
 - `tokvista [tokens.json]` - Token file path (default: `./tokens.json`)
+- `--config` / `-c` - Config file path (default auto-detect: `tokvista.config.ts|js|mjs|cjs|json`)
+- `--force` / `-f` - Overwrite existing `tokvista.config.ts` (with `tokvista init`)
 - `--port` / `-p` - Preferred port (default: `3000`)
 - `--no-open` - Do not auto-open browser
+- `--no-preview` - Skip auto-start after `tokvista init`
 - `--help` / `-h` - Show help
 - `Ctrl+C` - Stop the local server
 
@@ -236,6 +270,8 @@ Need a full setup guide? See **[GUIDE.md](./GUIDE.md)**.
 | `tokens` | `FigmaTokens` | Required | Tokens object (W3C format or Token Studio) |
 | `title` | `string` | `"Design Tokens"` | Main header title |
 | `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
+| `logo` | `string` | `undefined` | Optional logo URL (or data URL) rendered in the header |
+| `categories` | `("foundation" \| "semantic" \| "components")[]` | `undefined` | Restrict which top-level tabs are shown |
 | `fontFamilySans` | `string` | `undefined` | Override the UI sans font-family (CSS value). Load the font in your app. |
 | `fontFamilyMono` | `string` | `undefined` | Override the UI mono font-family (CSS value). Load the font in your app. |
 | `loadDefaultFonts` | `boolean` | `true` | When `true`, loads Inter + JetBrains Mono from Google Fonts. Set `false` to use only your app fonts. |
@@ -324,10 +360,17 @@ const livePreview = createGitHubPreviewUrl({
 ## Local Development
 
 ```bash
-# root package
+# package users (published npm package)
+npx tokvista init
+npx tokvista
+
+# contributors testing local unpublished changes (this repo)
+source ~/.nvm/nvm.sh
+nvm use 20
 npm install
 npm run build
-node dist/bin/tokvista.js ../tokens.json --port 4000
+node dist/bin/tokvista.js init --no-preview
+node dist/bin/tokvista.js --config ./tokvista.config.ts --port 4000
 
 # demo app
 cd demo
@@ -337,6 +380,7 @@ npm run dev
 ```
 
 CLI defaults to `http://localhost:3000` and demo dev runs at `http://localhost:3000/`, so use a custom CLI port (for example `4000`) when running both.
+Package users should use `npx tokvista ...`. `node dist/bin/tokvista.js ...` is only for local testing before publish.
 Note: production demo is served under `/tokvista/`.
 
 ---

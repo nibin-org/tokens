@@ -104,6 +104,29 @@ describe('TokenDocumentation Component', () => {
             }
         }
     };
+    const multiCategoryTokens: any = {
+        "Foundation/Value": {
+            "base": {
+                "color": {
+                    "blue": {
+                        "500": { "value": "#2563EB", "type": "color" }
+                    }
+                }
+            }
+        },
+        "Semantic/Value": {
+            "fill": {
+                "primary": { "value": "{base.color.blue.500}", "type": "color" }
+            }
+        },
+        "Components/Mode 1": {
+            "button": {
+                "Primary": {
+                    "fill": { "value": "#2563EB", "type": "color" }
+                }
+            }
+        }
+    };
 
     it('should render the title and subtitle', () => {
         render(
@@ -116,6 +139,30 @@ describe('TokenDocumentation Component', () => {
 
         expect(screen.getByText('Test Title')).toBeInTheDocument();
         expect(screen.getByText('Test Subtitle')).toBeInTheDocument();
+    });
+
+    it('should render header logo when provided', () => {
+        const { container } = render(
+            <TokenDocumentation
+                tokens={mockTokens}
+                logo="https://example.com/logo.svg"
+            />
+        );
+
+        expect(container.querySelector('.ftd-header-logo')).toBeInTheDocument();
+    });
+
+    it('should filter visible tabs when categories are provided', () => {
+        render(
+            <TokenDocumentation
+                tokens={multiCategoryTokens}
+                categories={['semantic', 'components']}
+            />
+        );
+
+        expect(screen.queryByRole('button', { name: 'Foundation' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Semantic' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Components' })).toBeInTheDocument();
     });
 
     it('should open search modal when search button is clicked', () => {

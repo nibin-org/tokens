@@ -235,6 +235,14 @@ body { margin: 0; }
   justify-self: start;
 }
 
+.ftd-header-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 .ftd-header-title {
   font-size: 0.96rem;
   font-weight: 800;

@@ -11,6 +11,7 @@ import type {
     DimensionGroup,
     SnapshotAccessMode,
     ThemeColors,
+    TokenCategory,
 } from '../types';
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
@@ -476,7 +477,9 @@ export function TokenDocumentation({
     tokens,
     title = 'Design Tokens',
     subtitle = 'Interactive documentation for your design system',
+    logo,
     defaultTab,
+    categories,
     showSearch = true,
     fontFamilySans,
     fontFamilyMono,
@@ -486,6 +489,13 @@ export function TokenDocumentation({
     theme,
 }: TokenDocumentationProps) {
     const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
+    const enabledCategories = useMemo(() => {
+        if (!categories || categories.length === 0) return null;
+        const validTabs: TabType[] = ['foundation', 'semantic', 'components'];
+        const filtered = categories.filter((item): item is TabType => validTabs.includes(item as TabType));
+        const unique = filtered.filter((item, index) => filtered.indexOf(item) === index);
+        return unique.length > 0 ? new Set<TabType>(unique) : null;
+    }, [categories]);
 
     // State
     const [activeTab, setActiveTab] = useState<TabType>((defaultTab as TabType) || 'foundation');
@@ -908,21 +918,22 @@ export function TokenDocumentation({
     // --- Determine which tabs to show ---
     const availableTabs = useMemo(() => {
         const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode }> = [];
+        const canShow = (category: TokenCategory) => !enabledCategories || enabledCategories.has(category);
 
-        if (Object.keys(foundationTokens).length > 0) {
+        if (canShow('foundation') && Object.keys(foundationTokens).length > 0) {
             tabs.push({ id: 'foundation', label: 'Foundation', icon: <Icon name="foundation" /> });
         }
 
-        if (Object.keys(semanticTokens).length > 0) {
+        if (canShow('semantic') && Object.keys(semanticTokens).length > 0) {
             tabs.push({ id: 'semantic', label: 'Semantic', icon: <Icon name="semantic" /> });
         }
 
-        if (Object.keys(componentTokens).length > 0) {
+        if (canShow('components') && Object.keys(componentTokens).length > 0) {
             tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
         }
 
         return tabs;
-    }, [foundationTokens, semanticTokens, componentTokens]);
+    }, [componentTokens, enabledCategories, foundationTokens, semanticTokens]);
 
     useEffect(() => {
         if (availableTabs.length === 0) {
@@ -1402,6 +1413,7 @@ export function TokenDocumentation({
                 <header className="ftd-header">
                     {/* Left: wordmark */}
                     <div className="ftd-header-brand">
+                        {logo && <img src={logo} alt="" aria-hidden="true" className="ftd-header-logo" />}
                         <span className="ftd-header-title">{title}</span>
                         {subtitle && <span className="ftd-header-sep" aria-hidden="true">·</span>}
                         {subtitle && <span className="ftd-header-subtitle">{subtitle}</span>}

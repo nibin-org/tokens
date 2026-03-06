@@ -40,3 +40,4 @@ demo/out/
 # Cache directories
 .cache/
 .turbo/
+.npm-cache/

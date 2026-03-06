@@ -1,33 +1,77 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createInterface, type Interface } from 'node:readline';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import type { TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
 
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 25;
 const SHUTDOWN_TIMEOUT_MS = 1500;
+const DEFAULT_INIT_CONFIG_FILE = 'tokvista.config.ts';
+const DEFAULT_INIT_SUBTITLE = 'Interactive design tokens documentation';
+const ALL_CATEGORIES: TokenCategory[] = ['foundation', 'semantic', 'components'];
+const DEFAULT_CONFIG_FILENAMES = [
+  DEFAULT_INIT_CONFIG_FILE,
+  'tokvista.config.mjs',
+  'tokvista.config.js',
+  'tokvista.config.cjs',
+  'tokvista.config.json',
+];
 
-interface CliOptions {
-  tokenFile: string;
+interface ServeCliOptions {
+  command: 'serve';
+  tokenFileArg?: string;
+  configPathArg?: string;
   port: number;
   openBrowser: boolean;
+}
+
+interface InitCliOptions {
+  command: 'init';
+  force: boolean;
+  port: number;
+  openBrowser: boolean;
+  startPreview: boolean;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions;
+
+interface RuntimeConfigPayload {
+  title?: string;
+  subtitle?: string;
+  logo?: string;
+  theme?: TokvistaThemePreference;
+  brandColor?: string;
+  categories?: TokenCategory[];
+  defaultTab?: TokenCategory;
+  showSearch?: boolean;
+}
+
+interface ConfigLoadResult {
+  config: TokvistaConfig;
+  configPath: string | null;
 }
 
 function printHelp() {
   console.log(`TokVista CLI
 
 Usage:
-  tokvista [tokens.json] [--port 3000] [--no-open]
+  tokvista [tokens.json] [--config tokvista.config.ts] [--port 3000] [--no-open]
+  tokvista init [--force] [--port 3000] [--no-open] [--no-preview]
 
 Arguments:
-  tokens.json       Path to your tokens file (default: ./tokens.json)
+  tokens.json       Path to your tokens file (overrides config.tokens)
 
 Options:
+  -c, --config      Path to TokVista config file
+  -f, --force       Overwrite existing tokvista.config.ts (init only)
   -p, --port        Preferred server port (default: 3000)
   --no-open         Do not automatically open the browser
+  --no-preview      Skip starting live preview after init
   -h, --help        Show this help message
 `);
 }
@@ -40,9 +84,9 @@ function parsePort(value: string): number {
   return parsed;
 }
 
-function parseArgs(args: string[]): CliOptions {
-  let tokenFile = 'tokens.json';
-  let tokenFileSet = false;
+function parseServeArgs(args: string[]): ServeCliOptions {
+  let tokenFileArg: string | undefined;
+  let configPathArg: string | undefined;
   let port = DEFAULT_PORT;
   let openBrowser = true;
 
@@ -69,8 +113,23 @@ function parseArgs(args: string[]): CliOptions {
       continue;
     }
 
+    if (arg === '--config' || arg === '-c') {
+      const next = args[index + 1];
+      if (!next) {
+        throw new Error(`Missing value for ${arg}.`);
+      }
+      configPathArg = next;
+      index += 1;
+      continue;
+    }
+
     if (arg.startsWith('--port=')) {
       port = parsePort(arg.slice('--port='.length));
+      continue;
+    }
+
+    if (arg.startsWith('--config=')) {
+      configPathArg = arg.slice('--config='.length);
       continue;
     }
 
@@ -78,15 +137,335 @@ function parseArgs(args: string[]): CliOptions {
       throw new Error(`Unknown option: ${arg}`);
     }
 
-    if (tokenFileSet) {
+    if (tokenFileArg) {
       throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
     }
 
-    tokenFile = arg;
-    tokenFileSet = true;
+    tokenFileArg = arg;
   }
 
-  return { tokenFile, port, openBrowser };
+  return { command: 'serve', tokenFileArg, configPathArg, port, openBrowser };
+}
+
+function parseInitArgs(args: string[]): InitCliOptions {
+  let force = false;
+  let port = DEFAULT_PORT;
+  let openBrowser = true;
+  let startPreview = true;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '-f' || arg === '--force') {
+      force = true;
+      continue;
+    }
+
+    if (arg === '--no-open') {
+      openBrowser = false;
+      continue;
+    }
+
+    if (arg === '--no-preview') {
+      startPreview = false;
+      continue;
+    }
+
+    if (arg === '--port' || arg === '-p') {
+      const next = args[index + 1];
+      if (!next) {
+        throw new Error(`Missing value for ${arg}.`);
+      }
+      port = parsePort(next);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--port=')) {
+      port = parsePort(arg.slice('--port='.length));
+      continue;
+    }
+
+    throw new Error(`Unknown option for init: ${arg}`);
+  }
+
+  return { command: 'init', force, port, openBrowser, startPreview };
+}
+
+function parseArgs(args: string[]): CliOptions {
+  if (args[0] === 'init') {
+    return parseInitArgs(args.slice(1));
+  }
+  return parseServeArgs(args);
+}
+
+function formatTitleFromPackageName(packageName: string): string {
+  const trimmed = packageName.trim();
+  if (!trimmed) return 'My Design System';
+  const parts = trimmed.split('/');
+  const withoutScope = trimmed.includes('/') ? parts[parts.length - 1] || trimmed : trimmed;
+  const words = withoutScope
+    .split(/[^a-zA-Z0-9]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (words.length === 0) return 'My Design System';
+  return words
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+async function resolveDefaultInitTitle(cwd: string): Promise<string> {
+  const packageJsonPath = path.resolve(cwd, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return 'My Design System';
+  }
+
+  try {
+    const raw = await readFile(packageJsonPath, 'utf8');
+    const parsed = JSON.parse(raw) as { name?: unknown };
+    if (typeof parsed.name === 'string') {
+      return formatTitleFromPackageName(parsed.name);
+    }
+  } catch {
+    // Ignore package.json parsing issues and fall back to a safe default.
+  }
+
+  return 'My Design System';
+}
+
+function escapeSingleQuotedString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function askRawQuestion(rl: Interface, prompt: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => resolve(answer.trim()));
+  });
+}
+
+async function askWithDefault(
+  rl: Interface,
+  label: string,
+  defaultValue?: string
+): Promise<string> {
+  const suffix = defaultValue != null && defaultValue !== '' ? ` [${defaultValue}]` : '';
+  const answer = await askRawQuestion(rl, `${label}${suffix}: `);
+  if (answer) return answer;
+  return defaultValue ?? '';
+}
+
+function parseThemeSelection(value: string): TokvistaThemePreference {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'system' || normalized === 's') return 'system';
+  if (normalized === 'light' || normalized === 'l') return 'light';
+  if (normalized === 'dark' || normalized === 'd') return 'dark';
+  throw new Error('Theme must be one of: system, light, dark.');
+}
+
+function parseCategoriesSelection(value: string): TokenCategory[] {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === 'all') return [...ALL_CATEGORIES];
+
+  const selected = new Set<TokenCategory>();
+  const segments = normalized
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  for (const segment of segments) {
+    if (segment === 'foundation' || segment === 'f') {
+      selected.add('foundation');
+      continue;
+    }
+    if (segment === 'semantic' || segment === 's') {
+      selected.add('semantic');
+      continue;
+    }
+    if (segment === 'components' || segment === 'c') {
+      selected.add('components');
+      continue;
+    }
+    throw new Error(`Invalid category "${segment}". Use foundation, semantic, components, or all.`);
+  }
+
+  if (selected.size === 0) {
+    return [...ALL_CATEGORIES];
+  }
+
+  return ALL_CATEGORIES.filter((category) => selected.has(category));
+}
+
+function parseYesNoSelection(value: string, defaultValue: boolean): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return defaultValue;
+  if (normalized === 'y' || normalized === 'yes') return true;
+  if (normalized === 'n' || normalized === 'no') return false;
+  throw new Error('Please enter yes/y or no/n.');
+}
+
+async function askWithParser<T>(
+  rl: Interface,
+  label: string,
+  defaultValue: string,
+  parser: (value: string) => T
+): Promise<T> {
+  while (true) {
+    const answer = await askWithDefault(rl, label, defaultValue);
+    try {
+      return parser(answer);
+    } catch (error) {
+      console.log((error as Error).message);
+    }
+  }
+}
+
+async function buildInitConfigFromPrompt(
+  cwd: string,
+  askPreviewQuestion: boolean
+): Promise<{ config: TokvistaConfig; preview: boolean }> {
+  const defaultTitle = await resolveDefaultInitTitle(cwd);
+  const defaults = {
+    title: defaultTitle,
+    subtitle: DEFAULT_INIT_SUBTITLE,
+    logo: '',
+    tokens: './tokens.json',
+    theme: 'system' as TokvistaThemePreference,
+    brandColor: '',
+    categories: [...ALL_CATEGORIES],
+  };
+
+  const interactive = process.stdin.isTTY && process.stdout.isTTY;
+  if (!interactive) {
+    return {
+      config: {
+        title: defaults.title,
+        subtitle: defaults.subtitle,
+        tokens: defaults.tokens,
+        theme: defaults.theme,
+        categories: defaults.categories,
+      },
+      preview: askPreviewQuestion,
+    };
+  }
+
+  console.log('TokVista init');
+  console.log('Press Enter to accept defaults.\n');
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const title = await askWithDefault(rl, 'Title', defaults.title);
+    const subtitle = await askWithDefault(rl, 'Subtitle', defaults.subtitle);
+    const logo = await askWithDefault(rl, 'Logo path/url (optional)', defaults.logo);
+    const tokens = await askWithDefault(rl, 'Tokens path', defaults.tokens);
+    const theme = await askWithParser(
+      rl,
+      'Theme (system/light/dark)',
+      defaults.theme,
+      parseThemeSelection
+    );
+    const brandColor = await askWithDefault(rl, 'Brand color (optional)', defaults.brandColor);
+    const categories = await askWithParser(
+      rl,
+      'Categories (all or comma list: foundation,semantic,components)',
+      'all',
+      parseCategoriesSelection
+    );
+    const preview = askPreviewQuestion
+      ? await askWithParser(
+          rl,
+          'Start live preview now? (Y/n)',
+          'y',
+          (value) => parseYesNoSelection(value, true)
+        )
+      : false;
+
+    return {
+      config: {
+        title,
+        subtitle,
+        ...(logo ? { logo } : {}),
+        tokens,
+        theme,
+        ...(brandColor ? { brandColor } : {}),
+        categories,
+      },
+      preview,
+    };
+  } finally {
+    rl.close();
+  }
+}
+
+function buildInitConfigTemplate(config: TokvistaConfig): string {
+  const tokensValue = config.tokens?.trim() || './tokens.json';
+  const lines = ['export default {'];
+
+  if (config.title?.trim()) {
+    lines.push(`  title: '${escapeSingleQuotedString(config.title.trim())}',`);
+  }
+  if (config.subtitle?.trim()) {
+    lines.push(`  subtitle: '${escapeSingleQuotedString(config.subtitle.trim())}',`);
+  }
+  if (config.logo?.trim()) {
+    lines.push(`  logo: '${escapeSingleQuotedString(config.logo.trim())}',`);
+  }
+  lines.push(`  tokens: '${escapeSingleQuotedString(tokensValue)}',`);
+  lines.push(`  theme: '${config.theme || 'system'}',`);
+  if (config.brandColor?.trim()) {
+    lines.push(`  brandColor: '${escapeSingleQuotedString(config.brandColor.trim())}',`);
+  }
+
+  const categories = config.categories && config.categories.length > 0
+    ? config.categories
+    : ALL_CATEGORIES;
+  const categoryList = categories.map((item) => `'${item}'`).join(', ');
+  lines.push(`  categories: [${categoryList}],`);
+  lines.push('};');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+async function runInitCommand(cwd: string, options: InitCliOptions): Promise<ServeCliOptions | null> {
+  const configPath = path.resolve(cwd, DEFAULT_INIT_CONFIG_FILE);
+  if (existsSync(configPath) && !options.force) {
+    throw new Error(
+      `${DEFAULT_INIT_CONFIG_FILE} already exists at ${configPath}. Re-run with --force to overwrite.`
+    );
+  }
+
+  const { config, preview } = await buildInitConfigFromPrompt(cwd, options.startPreview);
+  const template = buildInitConfigTemplate(config);
+  await writeFile(configPath, template, 'utf8');
+
+  console.log(`Created ${configPath}`);
+
+  if (!preview || !options.startPreview) {
+    console.log('Run `npx tokvista` to start the docs server.');
+    return null;
+  }
+
+  const resolvedTokens = resolveTokenPath(undefined, config, cwd, configPath);
+  if (!existsSync(resolvedTokens)) {
+    console.log(`Tokens file not found at ${resolvedTokens}.`);
+    console.log('Update tokvista.config.ts and run `npx tokvista` when ready.');
+    return null;
+  }
+
+  console.log('');
+  console.log('Starting live preview...');
+  return {
+    command: 'serve',
+    tokenFileArg: undefined,
+    configPathArg: configPath,
+    port: options.port,
+    openBrowser: options.openBrowser,
+  };
 }
 
 function serializeForInlineScript(value: unknown): string {
@@ -102,22 +481,238 @@ function escapeInlineTag(value: string, tagName: 'script' | 'style'): string {
   return value.replace(new RegExp(`</${tagName}`, 'gi'), `<\\/${tagName}`);
 }
 
-function buildHtml(tokens: unknown, css: string, appBundle: string): string {
+function toDataUrlMimeType(logoPath: string): string {
+  const ext = path.extname(logoPath).toLowerCase();
+  if (ext === '.svg') return 'image/svg+xml';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  if (ext === '.ico') return 'image/x-icon';
+  return 'application/octet-stream';
+}
+
+async function resolveLogoForRuntime(
+  logoPathValue: string | undefined,
+  configDir: string | null,
+  cwd: string
+): Promise<string | undefined> {
+  if (!logoPathValue) return undefined;
+  const logoPath = logoPathValue.trim();
+  if (!logoPath) return undefined;
+  if (/^https?:\/\//i.test(logoPath) || logoPath.startsWith('data:')) {
+    return logoPath;
+  }
+
+  const baseDir = configDir || cwd;
+  const resolvedLogoPath = path.resolve(baseDir, logoPath);
+  if (!existsSync(resolvedLogoPath)) {
+    throw new Error(`Logo file not found: ${resolvedLogoPath}`);
+  }
+
+  const content = await readFile(resolvedLogoPath);
+  const mimeType = toDataUrlMimeType(resolvedLogoPath);
+  return `data:${mimeType};base64,${content.toString('base64')}`;
+}
+
+function parseCategories(value: unknown): TokenCategory[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const allowed: TokenCategory[] = ['foundation', 'semantic', 'components'];
+  const normalized = value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is TokenCategory => allowed.includes(item as TokenCategory));
+  const unique = normalized.filter((item, index) => normalized.indexOf(item) === index);
+  return unique.length > 0 ? unique : undefined;
+}
+
+function parseDefaultTab(value: unknown): TokenCategory | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'foundation' || normalized === 'semantic' || normalized === 'components') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeThemePreference(value: unknown): TokvistaThemePreference | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'light' || normalized === 'dark' || normalized === 'system') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeConfigObject(raw: unknown, sourceLabel: string): TokvistaConfig {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(`${sourceLabel} must export a plain object.`);
+  }
+
+  const record = raw as Record<string, unknown>;
+  const readOptionalString = (key: keyof TokvistaConfig): string | undefined => {
+    const value = record[key];
+    if (value == null) return undefined;
+    if (typeof value !== 'string') {
+      throw new Error(`Invalid "${String(key)}" in ${sourceLabel}. Expected a string.`);
+    }
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  };
+
+  const theme = normalizeThemePreference(record.theme);
+  if (record.theme != null && !theme) {
+    throw new Error(`Invalid "theme" in ${sourceLabel}. Use "light", "dark", or "system".`);
+  }
+
+  const categories = parseCategories(record.categories);
+  if (record.categories != null && !categories) {
+    throw new Error(`Invalid "categories" in ${sourceLabel}. Use foundation/semantic/components.`);
+  }
+
+  const defaultTab = parseDefaultTab(record.defaultTab);
+  if (record.defaultTab != null && !defaultTab) {
+    throw new Error(`Invalid "defaultTab" in ${sourceLabel}. Use foundation/semantic/components.`);
+  }
+
+  if (record.showSearch != null && typeof record.showSearch !== 'boolean') {
+    throw new Error(`Invalid "showSearch" in ${sourceLabel}. Expected a boolean.`);
+  }
+
+  return {
+    title: readOptionalString('title'),
+    subtitle: readOptionalString('subtitle'),
+    logo: readOptionalString('logo'),
+    tokens: readOptionalString('tokens'),
+    theme,
+    brandColor: readOptionalString('brandColor'),
+    categories,
+    defaultTab,
+    showSearch: record.showSearch as boolean | undefined,
+  };
+}
+
+function parseTsConfigSource(source: string, sourceLabel: string): unknown {
+  const trimmed = source.replace(/^\uFEFF/, '').trim();
+  const exportMatch = trimmed.match(/^\s*export\s+default\s+([\s\S]+)$/);
+  if (!exportMatch) {
+    throw new Error(`${sourceLabel} must use "export default { ... }".`);
+  }
+  let expression = exportMatch[1].trim();
+  if (expression.endsWith(';')) {
+    expression = expression.slice(0, -1).trim();
+  }
+  try {
+    return new Function(`return (${expression});`)();
+  } catch (error) {
+    throw new Error(`Failed to evaluate ${sourceLabel}: ${(error as Error).message}`);
+  }
+}
+
+async function loadConfigFromFile(configPath: string): Promise<TokvistaConfig> {
+  const sourceLabel = path.basename(configPath);
+  const extension = path.extname(configPath).toLowerCase();
+
+  if (extension === '.json') {
+    const raw = await readFile(configPath, 'utf8');
+    try {
+      return normalizeConfigObject(JSON.parse(raw), sourceLabel);
+    } catch (error) {
+      throw new Error(`Failed to parse ${sourceLabel}: ${(error as Error).message}`);
+    }
+  }
+
+  if (extension === '.ts') {
+    const raw = await readFile(configPath, 'utf8');
+    const parsed = parseTsConfigSource(raw, sourceLabel);
+    return normalizeConfigObject(parsed, sourceLabel);
+  }
+
+  const moduleUrl = pathToFileURL(configPath).href;
+  const imported = await import(moduleUrl);
+  const maybeDefault = imported.default ?? imported;
+  return normalizeConfigObject(maybeDefault, sourceLabel);
+}
+
+function resolveConfigPath(cwd: string, explicitConfigPath?: string): string | null {
+  if (explicitConfigPath) {
+    const resolved = path.resolve(cwd, explicitConfigPath);
+    if (!existsSync(resolved)) {
+      throw new Error(`Config file not found: ${resolved}`);
+    }
+    return resolved;
+  }
+
+  for (const filename of DEFAULT_CONFIG_FILENAMES) {
+    const candidate = path.resolve(cwd, filename);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+async function resolveCliConfig(cwd: string, explicitConfigPath?: string): Promise<ConfigLoadResult> {
+  const configPath = resolveConfigPath(cwd, explicitConfigPath);
+  if (!configPath) return { config: {}, configPath: null };
+  const config = await loadConfigFromFile(configPath);
+  return { config, configPath };
+}
+
+function resolveTokenPath(
+  tokenFileArg: string | undefined,
+  config: TokvistaConfig,
+  cwd: string,
+  configPath: string | null
+): string {
+  const baseDir = tokenFileArg ? cwd : configPath ? path.dirname(configPath) : cwd;
+  const configuredTokenPath = typeof config.tokens === 'string' ? config.tokens.trim() : '';
+  const input = tokenFileArg || configuredTokenPath || 'tokens.json';
+  return path.resolve(baseDir, input);
+}
+
+async function buildRuntimeConfig(
+  config: TokvistaConfig,
+  configPath: string | null,
+  cwd: string
+): Promise<RuntimeConfigPayload> {
+  const logo = await resolveLogoForRuntime(config.logo, configPath ? path.dirname(configPath) : null, cwd);
+  return {
+    ...(config.title ? { title: config.title } : {}),
+    ...(config.subtitle ? { subtitle: config.subtitle } : {}),
+    ...(logo ? { logo } : {}),
+    ...(config.theme ? { theme: config.theme } : {}),
+    ...(config.brandColor ? { brandColor: config.brandColor } : {}),
+    ...(config.categories && config.categories.length > 0 ? { categories: config.categories } : {}),
+    ...(config.defaultTab ? { defaultTab: config.defaultTab } : {}),
+    ...(typeof config.showSearch === 'boolean' ? { showSearch: config.showSearch } : {}),
+  };
+}
+
+function buildHtml(
+  tokens: unknown,
+  runtimeConfig: RuntimeConfigPayload,
+  css: string,
+  appBundle: string
+): string {
   const serializedTokens = serializeForInlineScript(tokens);
+  const serializedConfig = serializeForInlineScript(runtimeConfig);
   const safeCss = escapeInlineTag(css, 'style');
   const safeAppBundle = escapeInlineTag(appBundle, 'script');
+  const pageTitle = runtimeConfig.title || 'TokVista';
 
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TokVista</title>
+    <title>${pageTitle}</title>
     <style>${safeCss}</style>
   </head>
   <body>
     <div id="tokvista-root"></div>
     <script>window.__TOKVISTA_TOKENS__ = ${serializedTokens};</script>
+    <script>window.__TOKVISTA_CONFIG__ = ${serializedConfig};</script>
     <script type="module">${safeAppBundle}</script>
   </body>
 </html>`;
@@ -230,74 +825,93 @@ async function readTokens(tokenPath: string): Promise<unknown> {
   }
 }
 
+async function runServeCommand(cwd: string, options: ServeCliOptions): Promise<void> {
+  const { config, configPath } = await resolveCliConfig(cwd, options.configPathArg);
+  const resolvedTokenPath = resolveTokenPath(options.tokenFileArg, config, cwd, configPath);
+
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  const runtimeConfig = await buildRuntimeConfig(config, configPath, cwd);
+
+  const [tokens, css, appBundle] = await Promise.all([
+    readTokens(resolvedTokenPath),
+    readFile(resolveDistAsset('styles.css'), 'utf8'),
+    readFile(resolveDistAsset('cli/browser.js'), 'utf8'),
+  ]);
+
+  const html = buildHtml(tokens, runtimeConfig, css, appBundle);
+  const { server, port } = await startServer(html, options.port);
+  const openSockets = new Set<Socket>();
+  let isShuttingDown = false;
+
+  server.on('connection', (socket) => {
+    openSockets.add(socket);
+    socket.on('close', () => {
+      openSockets.delete(socket);
+    });
+  });
+
+  const url = `http://localhost:${port}`;
+
+  console.log(`TokVista running at ${url}`);
+  console.log(`Using tokens: ${resolvedTokenPath}`);
+  if (configPath) {
+    console.log(`Using config: ${configPath}`);
+  }
+
+  if (options.openBrowser) {
+    try {
+      await openBrowser(url);
+    } catch (error) {
+      console.warn(
+        `Could not auto-open browser. Open this URL manually: ${url}\n${(error as Error).message}`
+      );
+    }
+  } else {
+    console.log('Browser auto-open disabled (--no-open).');
+  }
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.log(`\nReceived ${signal}, shutting down TokVista...`);
+    const timeout = setTimeout(() => {
+      for (const socket of openSockets) {
+        socket.destroy();
+      }
+      process.exit(0);
+    }, SHUTDOWN_TIMEOUT_MS);
+    timeout.unref();
+
+    // Available in modern Node.js; closes keep-alive sockets immediately.
+    (server as unknown as { closeAllConnections?: () => void }).closeAllConnections?.();
+
+    server.close(() => {
+      clearTimeout(timeout);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
-    const resolvedTokenPath = path.resolve(process.cwd(), options.tokenFile);
-
-    if (!existsSync(resolvedTokenPath)) {
-      throw new Error(`Token file not found: ${resolvedTokenPath}`);
-    }
-
-    const [tokens, css, appBundle] = await Promise.all([
-      readTokens(resolvedTokenPath),
-      readFile(resolveDistAsset('styles.css'), 'utf8'),
-      readFile(resolveDistAsset('cli/browser.js'), 'utf8'),
-    ]);
-
-    const html = buildHtml(tokens, css, appBundle);
-    const { server, port } = await startServer(html, options.port);
-    const openSockets = new Set<Socket>();
-    let isShuttingDown = false;
-
-    server.on('connection', (socket) => {
-      openSockets.add(socket);
-      socket.on('close', () => {
-        openSockets.delete(socket);
-      });
-    });
-
-    const url = `http://localhost:${port}`;
-
-    console.log(`TokVista running at ${url}`);
-    console.log(`Using tokens: ${resolvedTokenPath}`);
-
-    if (options.openBrowser) {
-      try {
-        await openBrowser(url);
-      } catch (error) {
-        console.warn(
-          `Could not auto-open browser. Open this URL manually: ${url}\n${(error as Error).message}`
-        );
+    const cwd = process.cwd();
+    if (options.command === 'init') {
+      const serveOptions = await runInitCommand(cwd, options);
+      if (serveOptions) {
+        await runServeCommand(cwd, serveOptions);
       }
-    } else {
-      console.log('Browser auto-open disabled (--no-open).');
+      return;
     }
 
-    const shutdown = (signal: NodeJS.Signals) => {
-      if (isShuttingDown) return;
-      isShuttingDown = true;
-
-      console.log(`\nReceived ${signal}, shutting down TokVista...`);
-      const timeout = setTimeout(() => {
-        for (const socket of openSockets) {
-          socket.destroy();
-        }
-        process.exit(0);
-      }, SHUTDOWN_TIMEOUT_MS);
-      timeout.unref();
-
-      // Available in modern Node.js; closes keep-alive sockets immediately.
-      (server as unknown as { closeAllConnections?: () => void }).closeAllConnections?.();
-
-      server.close(() => {
-        clearTimeout(timeout);
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    await runServeCommand(cwd, options);
   } catch (error) {
     console.error((error as Error).message);
     process.exit(1);
