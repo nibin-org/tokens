@@ -26,7 +26,6 @@ Design token documentation is often static and hard to scan. **Tokvista** gives 
 - One-click copy with format-aware variable names
 - Semantic + component token views with aliases resolved
 - Generic **All Tokens** view for non-standard JSON structures
-- Interactive playground for previews
 - Two usage modes: zero-setup CLI and React component library
 
 ---

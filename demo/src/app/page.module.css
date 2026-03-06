@@ -1,3 +1,20 @@
+:global(.ftd-header-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+:global(.ftd-header-title)::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  background: center / contain no-repeat url('/brand/tokvista-mark.svg');
+}
+
 .sharedHeaderNotice {
   position: fixed;
   top: 84px;
@@ -711,6 +728,161 @@
   z-index: 9999;
 }
 
+.sourceLoadingViewport {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #ffffff;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingViewport {
+  background: #141210;
+}
+
+.sourceLoadingState {
+  margin: 0;
+  width: min(960px, 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(10, 10, 10, 0.08);
+  background: #ffffff;
+  padding: 20px 22px;
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: 'Syne', var(--ftd-font-sans), sans-serif;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingState {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(90deg, rgba(10, 10, 10, 0.96) 0%, rgba(26, 26, 26, 0.92) 100%);
+  box-shadow: 0 24px 46px rgba(0, 0, 0, 0.45);
+}
+
+.sourceLoadingHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sourceLoadingMark {
+  width: 26px;
+  height: 26px;
+  display: block;
+  color: #0a0a0a;
+}
+
+.sourceLoadingMarkGhost {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+  opacity: 0.18;
+}
+
+.sourceLoadingMarkFront {
+  fill: currentColor;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingMark {
+  color: #ffffff;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingMarkGhost {
+  opacity: 0.26;
+}
+
+.sourceLoadingWordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.sourceLoadingTok {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0a0a0a;
+}
+
+.sourceLoadingVista {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: rgba(10, 10, 10, 0.42);
+}
+
+:global(html[data-theme='dark']) .sourceLoadingTok { color: #ffffff; }
+:global(html[data-theme='dark']) .sourceLoadingVista { color: rgba(255, 255, 255, 0.32); }
+
+.sourceLoadingBadge {
+  margin-left: auto;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(10, 10, 10, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(10, 10, 10, 0.56);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingBadge {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.sourceLoadingTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0a0a0a;
+  letter-spacing: -0.02em;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingTitle { color: #ffffff; }
+
+.sourceLoadingText {
+  margin: 0;
+  color: rgba(10, 10, 10, 0.58);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingText { color: rgba(255, 255, 255, 0.62); }
+
+.sourceLoadingTrack {
+  position: relative;
+  height: 5px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(10, 10, 10, 0.08);
+}
+
+:global(html[data-theme='dark']) .sourceLoadingTrack { background: rgba(255, 255, 255, 0.12); }
+
+.sourceLoadingBar {
+  position: absolute;
+  top: 0;
+  left: -30%;
+  height: 100%;
+  width: 30%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(10, 10, 10, 0.3), rgba(10, 10, 10, 0.9));
+  animation: sourceLoadBar 1s ease-in-out infinite;
+}
+
+:global(html[data-theme='dark']) .sourceLoadingBar {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.92));
+}
+
 .sourceErrorState {
   margin: 140px auto 0;
   max-width: 980px;
@@ -758,6 +930,16 @@
 }
 
 @media (max-width: 1024px) {
+  :global(.ftd-header-title) {
+    font-size: 1rem;
+    gap: 8px;
+  }
+
+  :global(.ftd-header-title)::before {
+    width: 20px;
+    height: 20px;
+  }
+
   .sharedHeaderNotice {
     top: 68px;
     right: 12px;
@@ -812,6 +994,25 @@
     margin: 110px 12px 0;
     padding: 14px;
   }
+
+  .sourceLoadingState {
+    margin: 0;
+    padding: 16px;
+  }
+
+  .sourceLoadingHeader {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .sourceLoadingBadge {
+    margin-left: 0;
+  }
+}
+
+@keyframes sourceLoadBar {
+  0% { left: -30%; }
+  100% { left: 100%; }
 }
 
 .visualDiffSection {
