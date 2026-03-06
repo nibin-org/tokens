@@ -17,15 +17,13 @@ import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
 import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
-import { ResetModal } from './ResetModal';
-import { PlaygroundTab, type PlaygroundConfig } from './PlaygroundTab';
 import { createTokenMap, resolveTokenValue, findAllTokens, toCssVariable, deepMergeRecords, getFoundationTokenTree } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
 import { FormatSelector, type CopyFormat } from './FormatSelector';
 import { formatTokenForCopy, formatCopiedLabel } from '../utils/formatUtils';
 
-type TabType = 'foundation' | 'semantic' | 'components' | 'playground';
+type TabType = 'foundation' | 'semantic' | 'components';
 
 interface ComponentData {
     variants: Record<string, VariantTokens>;
@@ -484,7 +482,6 @@ export function TokenDocumentation({
     fontFamilyMono,
     loadDefaultFonts = true,
     onTokenClick,
-    playgroundLock,
     snapshotHistory,
     theme,
 }: TokenDocumentationProps) {
@@ -496,7 +493,6 @@ export function TokenDocumentation({
     const [copiedToken, setCopiedToken] = useState<{ id: number; value: string } | null>(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
-    const [resetModalOpen, setResetModalOpen] = useState(false);
     const [snapshotOpen, setSnapshotOpen] = useState(false);
     const [snapshotLoading, setSnapshotLoading] = useState(false);
     const [snapshotError, setSnapshotError] = useState('');
@@ -535,113 +531,23 @@ export function TokenDocumentation({
         return 'dark';
     });
 
-    // Default configuration
-    const defaultPlaygroundConfig: PlaygroundConfig = {
-        backgroundColor: 'fill-blue',
-        textColor: 'text-white',
-        borderColor: 'stroke-blue',
-        borderRadius: 'radius-sm',
-        paddingX: 'space-md',
-        paddingY: 'space-sm',
-        fontSize: 'font-size-md',
-        lineHeight: 'line-height-md',
-        hoverBackgroundColor: 'fill-blue-dark',
-        hoverTextColor: 'text-white',
-        hoverBorderColor: 'stroke-blue-dark',
-        // content
-        buttonText: 'Button Preview',
-        isFullWidth: false,
-        showIcon: false,
-        // active state
-        activeBackgroundColor: 'fill-blue-darker',
-        activeTextColor: 'text-white',
-        activeBorderColor: 'stroke-blue-dark',
-        className: 'custom-button',
-    };
-
-    // Playground state - initialize from localStorage and merge with defaults
-    const [playgroundConfig, setPlaygroundConfig] = useState<PlaygroundConfig>(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const savedConfig = localStorage.getItem('ftd-playground-config');
-                if (savedConfig) {
-                    const parsed = JSON.parse(savedConfig);
-                    // Migration: if old data has 'padding', split into paddingX and paddingY
-                    const migrated = { ...parsed };
-                    if (parsed.padding && !parsed.paddingX) {
-                        migrated.paddingX = parsed.padding;
-                        migrated.paddingY = parsed.padding;
-                        delete migrated.padding;
-                    }
-
-                    // Fix typo in activeBorderColor migration
-                    if (migrated.activeBorderColor === 'stroke-blue-darker') {
-                        migrated.activeBorderColor = 'stroke-blue-dark';
-                    }
-
-                    if (migrated.className === 'button') {
-                        migrated.className = 'custom-button';
-                    }
-
-                    // Merge with defaults to ensure new fields are always present
-                    return { ...defaultPlaygroundConfig, ...migrated };
-                }
-            } catch {
-                // Ignore storage access errors
-            }
-        }
-        return defaultPlaygroundConfig;
-    });
-
-    // Load saved states on mount (Client-side only)
-
+    // Mount effect — sets isMounted and restores active tab from localStorage
     useEffect(() => {
         setIsMounted(true);
         if (typeof window !== 'undefined') {
             try {
-                // Restore Active Tab
                 const savedTab = localStorage.getItem('ftd-active-tab');
-                if (savedTab && ['foundation', 'semantic', 'components', 'playground'].includes(savedTab)) {
+                if (savedTab && ['foundation', 'semantic', 'components'].includes(savedTab)) {
                     setActiveTab(savedTab as TabType);
                 }
             } catch {
-                // Ignore storage access errors (e.g., privacy mode)
+                // Ignore storage access errors
             }
         }
     }, []);
 
-    const resetPlaygroundConfig = () => {
-        setResetModalOpen(true);
-    };
-
-    const confirmReset = () => {
-        setPlaygroundConfig(defaultPlaygroundConfig);
-        if (typeof window !== 'undefined') {
-            try {
-                localStorage.removeItem('ftd-playground-config');
-            } catch {
-                // Ignore storage access errors
-            }
-        }
-    };
-
-    const [playgroundActiveTab, setPlaygroundActiveTab] = useState<'css' | 'scss' | 'tailwind'>(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const savedTab = localStorage.getItem('ftd-playground-active-tab');
-                if (savedTab && (savedTab === 'css' || savedTab === 'scss' || savedTab === 'tailwind')) {
-                    return savedTab;
-                }
-            } catch {
-                // Ignore storage access errors
-            }
-        }
-        return 'css';
-    });
-
     // Load default fonts only when requested
     useEffect(() => {
-        if (!loadDefaultFonts) return;
         if (typeof document === 'undefined' || typeof window === 'undefined') return;
         const isHappyDom = typeof navigator !== 'undefined' && /happy-dom/i.test(navigator.userAgent || '');
         const isTestEnv =
@@ -659,22 +565,6 @@ export function TokenDocumentation({
         document.head.appendChild(link);
     }, [loadDefaultFonts]);
 
-    // Save playground state to localStorage whenever it changes
-    useEffect(() => {
-        try {
-            localStorage.setItem('ftd-playground-config', JSON.stringify(playgroundConfig));
-        } catch {
-            // Ignore storage access errors
-        }
-    }, [playgroundConfig]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('ftd-playground-active-tab', playgroundActiveTab);
-        } catch {
-            // Ignore storage access errors
-        }
-    }, [playgroundActiveTab]);
 
     // Save active tab state
     useEffect(() => {
@@ -1030,9 +920,6 @@ export function TokenDocumentation({
         if (Object.keys(componentTokens).length > 0) {
             tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
         }
-
-        // Always add Playground
-        tabs.push({ id: 'playground', label: 'Interactive Sandbox', icon: <Icon name="playground" /> });
 
         return tabs;
     }, [foundationTokens, semanticTokens, componentTokens]);
@@ -1412,7 +1299,6 @@ export function TokenDocumentation({
     }, [fontFamilySans, fontFamilyMono]);
 
     // --- Sub-Components ---
-    const isPlaygroundLocked = Boolean(playgroundLock?.enabled);
     const snapshotMode: SnapshotAccessMode = snapshotHistory?.accessMode === 'preview' ? 'preview' : 'full';
     const snapshotEnabled = Boolean(snapshotHistory?.enabled);
     const maxPreviewSnapshots = snapshotHistory?.maxPreviewSnapshots ?? 3;
@@ -1554,15 +1440,11 @@ export function TokenDocumentation({
                             <button
                                 type="button"
                                 key={tab.id}
-                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''} ${tab.id === 'playground' && isPlaygroundLocked ? 'ftd-tab-locked' : ''}`}
+                                className={`ftd-tab ${activeTab === tab.id ? 'active' : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
-                                title={tab.id === 'playground' && isPlaygroundLocked ? 'Interactive Sandbox is read-only in shared preview' : undefined}
                             >
                                 <span style={{ marginRight: '8px' }}>{tab.icon}</span>
                                 {tab.label}
-                                {tab.id === 'playground' && isPlaygroundLocked && (
-                                    <span className="ftd-tab-badge ftd-tab-badge-lock">Read only</span>
-                                )}
                             </button>
                         ))}
                     </nav>
@@ -1600,18 +1482,6 @@ export function TokenDocumentation({
                     />
                 )}
 
-                {activeTab === 'playground' && (
-                    <PlaygroundTab
-                        tokens={normalizedTokenSets as FigmaTokens}
-                        tokenMap={tokenMap}
-                        config={playgroundConfig}
-                        setConfig={setPlaygroundConfig}
-                        activeTab={playgroundActiveTab}
-                        setActiveTab={setPlaygroundActiveTab}
-                        onReset={resetPlaygroundConfig}
-                        lock={playgroundLock}
-                    />
-                )}
             </div>
 
             {snapshotOpen && (
@@ -1768,11 +1638,6 @@ export function TokenDocumentation({
                 tokens={normalizedTokenSets as FigmaTokens}
             />
 
-            <ResetModal
-                isOpen={resetModalOpen}
-                onClose={() => setResetModalOpen(false)}
-                onConfirm={confirmReset}
-            />
         </div>
     );
 }

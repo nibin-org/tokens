@@ -4,7 +4,6 @@ export type IconName =
     | 'foundation'
     | 'semantic'
     | 'components'
-    | 'playground'
     | 'colors'
     | 'fill'
     | 'stroke'
@@ -68,15 +67,6 @@ const ICONS: Record<IconName, (props: React.SVGProps<SVGSVGElement>) => JSX.Elem
             <rect x="13" y="4" width="7" height="7" rx="1.5" />
             <rect x="4" y="13" width="7" height="7" rx="1.5" />
             <rect x="13" y="13" width="7" height="7" rx="1.5" />
-        </svg>
-    ),
-    playground: (props) => (
-        <svg {...base} {...props}>
-            <rect x="4.5" y="9" width="15" height="8" rx="4" />
-            <path d="M9 13h4" />
-            <path d="M11 11v4" />
-            <circle cx="15.5" cy="12.5" r="0.8" />
-            <circle cx="17.5" cy="14.5" r="0.8" />
         </svg>
     ),
     colors: (props) => (
@@ -260,4 +250,3 @@ export function Icon({ name, size = 18, className, ...rest }: IconProps) {
         />
     );
 }
-

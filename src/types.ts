@@ -102,18 +102,10 @@ export interface TokenDocumentationProps {
   fontFamilyMono?: string;
   loadDefaultFonts?: boolean;
   onTokenClick?: (token: ParsedColorToken | ParsedSpacingToken | ParsedRadiusToken | ParsedSizeToken) => void;
-  playgroundLock?: PlaygroundLockOptions;
   snapshotHistory?: SnapshotHistoryOptions;
   theme?: ThemeConfig;
 }
 
-export interface PlaygroundLockOptions {
-  enabled: boolean;
-  title?: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}
 
 export type SnapshotAccessMode = 'preview' | 'full';
 
