@@ -254,6 +254,12 @@ function normalizeHistoryItems(items: unknown, sourceUrl?: string): SnapshotHist
     .filter((item): item is SnapshotHistoryItem => Boolean(item))
 }
 
+function extractHistoryItems(payload: unknown): unknown {
+  if (Array.isArray(payload)) return payload
+  if (!payload || typeof payload !== 'object') return []
+  return Array.isArray((payload as { items?: unknown }).items) ? (payload as { items: unknown[] }).items : []
+}
+
 function buildLocalPreviewUrl(rawUrl: string): string {
   if (typeof window === 'undefined') return ''
   const base = `${window.location.origin}/`
@@ -387,10 +393,7 @@ export default function Home() {
       const response = await fetch(withCacheBust(context.historyEndpoint), { cache: 'no-store' })
       if (!response.ok) return source
       const payload = await response.json()
-      const items = normalizeHistoryItems(
-        context.sourceHost === 'github.com' ? payload : (payload as { items?: unknown }).items,
-        context.sourceUrl
-      )
+      const items = normalizeHistoryItems(extractHistoryItems(payload), context.sourceUrl)
       const latestRaw = normalizeHttpUrl(items[0]?.rawUrl || '')
       return latestRaw || source
     } catch {

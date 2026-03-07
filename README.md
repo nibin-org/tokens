@@ -90,6 +90,10 @@ export default function DesignSystem() {
 }
 ```
 
+### Migration from `@nibin-org/tokens`
+
+`tokvista` is the successor package. Update your install/imports to `tokvista` and use the npm changelog or git history for version-specific migration notes.
+
 ### CLI Options
 
 - `tokvista init` - Interactive setup for `tokvista.config.ts` + auto preview

@@ -2,10 +2,42 @@
  * Type definitions for Tokvista
  */
 
+export const TOKEN_TYPES = {
+  COLOR: "color",
+  NUMBER: "number",
+  DIMENSION: "dimension",
+  SPACING: "spacing",
+  SIZING: "sizing",
+  BORDER_RADIUS: "borderRadius",
+  BORDER_WIDTH: "borderWidth",
+  OPACITY: "opacity",
+  FONT_SIZE: "fontSize",
+  LINE_HEIGHT: "lineHeight",
+  LETTER_SPACING: "letterSpacing",
+  STRING: "string",
+  FONT_FAMILY: "fontFamily",
+  FONT_FAMILIES: "fontFamilies",
+  FONT_WEIGHT: "fontWeight",
+  FONT_WEIGHTS: "fontWeights",
+  TEXT_CASE: "textCase",
+  TEXT_DECORATION: "textDecoration",
+  STROKE_STYLE: "strokeStyle",
+  BORDER_STYLE: "borderStyle",
+  DURATION: "duration",
+  CUBIC_BEZIER: "cubicBezier",
+  TYPOGRAPHY: "typography",
+  BOX_SHADOW: "boxShadow",
+  SHADOW: "shadow",
+  BORDER: "border",
+  COMPOSITION: "composition",
+} as const;
+
+export type TokenType = (typeof TOKEN_TYPES)[keyof typeof TOKEN_TYPES];
+
 // Token format from Figma Token Studio
 export interface TokenValue {
   value: string | number;
-  type: string;
+  type: TokenType | (string & {});
 }
 
 export interface NestedTokens {

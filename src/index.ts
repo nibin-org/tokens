@@ -46,6 +46,7 @@ export { Spacing, Colors, Sizes, Radius } from './components/StandaloneComponent
 // Types
 export type {
   TokenDocumentationProps,
+  TokenType,
   ThemeConfig,
   ThemeColors,
   ThemeMode,
@@ -75,6 +76,8 @@ export type {
   RadiusDisplayProps as RadiusShowcaseProps,
   SizeDisplayProps as SizeScaleProps,
 } from './types';
+
+export { TOKEN_TYPES } from './types';
 
 // Utilities (for advanced customization)
 export {
