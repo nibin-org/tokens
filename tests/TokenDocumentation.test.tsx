@@ -127,6 +127,31 @@ describe('TokenDocumentation Component', () => {
             }
         }
     };
+    const pluginWrappedStructuredTokens: any = {
+        tokens: {
+            Foundation: {
+                Foundation: {
+                    color: {
+                        primary: {
+                            "500": { value: "#2563EB", type: "color" }
+                        }
+                    }
+                },
+                Semantic: {
+                    color: {
+                        primary: { value: "{Foundation.color.primary.500}", type: "color" }
+                    }
+                },
+                Components: {
+                    Button: {
+                        primary: {
+                            background: { value: "{Semantic.color.primary}", type: "color" }
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     it('should render the title and subtitle', () => {
         render(
@@ -161,6 +186,14 @@ describe('TokenDocumentation Component', () => {
         );
 
         expect(screen.queryByRole('button', { name: 'Foundation' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Semantic' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Components' })).toBeInTheDocument();
+    });
+
+    it('should unwrap a single plugin collection wrapper that contains foundation, semantic, and components sets', () => {
+        render(<TokenDocumentation tokens={pluginWrappedStructuredTokens} />);
+
+        expect(screen.getByRole('button', { name: 'Foundation' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Semantic' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Components' })).toBeInTheDocument();
     });

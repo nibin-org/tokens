@@ -189,16 +189,16 @@ function normalizeTokenSetsRoot(input: unknown): Record<string, unknown> {
     if (!isRecord(input)) return {};
 
     const directRoot = isRecord(input.tokens) ? (input.tokens as Record<string, unknown>) : input;
-    if (hasStructuredSets(directRoot)) {
-        return directRoot;
-    }
-
     const candidateKeys = Object.keys(directRoot).filter((key) => !key.startsWith('$'));
     if (candidateKeys.length === 1) {
         const inner = directRoot[candidateKeys[0]];
         if (isRecord(inner) && hasStructuredSets(inner)) {
             return inner;
         }
+    }
+
+    if (hasStructuredSets(directRoot)) {
+        return directRoot;
     }
 
     return directRoot;
