@@ -119,6 +119,18 @@ npx tokvista validate tokens.json
 npm run validate-tokens
 ```
 
+### Compare Tokens
+
+```bash
+# Compare two token files
+npx tokvista diff tokens-v1.json tokens-v2.json
+
+# Perfect for:
+# - Version control reviews
+# - Release changelogs  
+# - Migration tracking
+```
+
 ### Interactive Setup
 
 ```bash
@@ -149,6 +161,7 @@ Then run `npx tokvista` to use your config.
 | `tokvista init` | Interactive config setup |
 | `tokvista export <file> --format <type>` | Export tokens (css, scss, json, tailwind) |
 | `tokvista validate <file>` | Validate token structure and values |
+| `tokvista diff <old> <new>` | Compare two token files |
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
 | `--format` | Export format (export only) |

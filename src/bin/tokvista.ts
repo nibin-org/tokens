@@ -10,6 +10,7 @@ import type { FigmaTokens, TokenCategory, TokvistaConfig, TokvistaThemePreferenc
 import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../utils/exportUtils';
 import { HotReloadServer } from './hotreload';
 import { validateTokens } from './validator';
+import { diffTokens } from './differ';
 import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
@@ -55,7 +56,13 @@ interface ValidateCliOptions {
   tokenFileArg: string;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions;
+interface DiffCliOptions {
+  command: 'diff';
+  oldFileArg: string;
+  newFileArg: string;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -81,6 +88,7 @@ Usage:
   tokvista init [--force] [--port 3000] [--no-open] [--no-preview]
   tokvista export <tokens.json> --format <css|scss|json|tailwind> [--output <file>]
   tokvista validate <tokens.json>
+  tokvista diff <old.json> <new.json>
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -235,6 +243,9 @@ function parseArgs(args: string[]): CliOptions {
   if (args[0] === 'validate') {
     return parseValidateArgs(args.slice(1));
   }
+  if (args[0] === 'diff') {
+    return parseDiffArgs(args.slice(1));
+  }
   return parseServeArgs(args);
 }
 
@@ -263,6 +274,37 @@ function parseValidateArgs(args: string[]): ValidateCliOptions {
   if (!tokenFileArg) throw new Error('Token file is required for validate');
 
   return { command: 'validate', tokenFileArg };
+}
+
+function parseDiffArgs(args: string[]): DiffCliOptions {
+  let oldFileArg: string | undefined;
+  let newFileArg: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (!oldFileArg) {
+      oldFileArg = arg;
+    } else if (!newFileArg) {
+      newFileArg = arg;
+    } else {
+      throw new Error(`Too many arguments. Expected: tokvista diff <old.json> <new.json>`);
+    }
+  }
+
+  if (!oldFileArg) throw new Error('Old token file is required');
+  if (!newFileArg) throw new Error('New token file is required');
+
+  return { command: 'diff', oldFileArg, newFileArg };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1147,6 +1189,52 @@ async function runValidateCommand(cwd: string, options: ValidateCliOptions): Pro
   }
 }
 
+async function runDiffCommand(cwd: string, options: DiffCliOptions): Promise<void> {
+  const oldPath = path.resolve(cwd, options.oldFileArg);
+  const newPath = path.resolve(cwd, options.newFileArg);
+  
+  if (!existsSync(oldPath)) {
+    throw new Error(`Old token file not found: ${oldPath}`);
+  }
+  if (!existsSync(newPath)) {
+    throw new Error(`New token file not found: ${newPath}`);
+  }
+
+  const [oldTokens, newTokens] = await Promise.all([
+    readTokens(oldPath),
+    readTokens(newPath)
+  ]);
+
+  const diff = diffTokens(oldTokens, newTokens);
+
+  console.log(`\nComparing tokens:\n  Old: ${oldPath}\n  New: ${newPath}\n`);
+
+  if (diff.added.length > 0) {
+    console.log(`✅ Added (${diff.added.length}):`);
+    diff.added.forEach(path => console.log(`  + ${path}`));
+    console.log('');
+  }
+
+  if (diff.removed.length > 0) {
+    console.log(`❌ Removed (${diff.removed.length}):`);
+    diff.removed.forEach(path => console.log(`  - ${path}`));
+    console.log('');
+  }
+
+  if (diff.modified.length > 0) {
+    console.log(`🔄 Modified (${diff.modified.length}):`);
+    diff.modified.forEach(({ path, oldValue, newValue }) => {
+      console.log(`  ~ ${path}`);
+      console.log(`    - ${oldValue}`);
+      console.log(`    + ${newValue}`);
+    });
+    console.log('');
+  }
+
+  console.log(`Unchanged: ${diff.unchanged}`);
+  console.log(`Total changes: ${diff.added.length + diff.removed.length + diff.modified.length}\n`);
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -1167,6 +1255,11 @@ async function main() {
 
     if (options.command === 'validate') {
       await runValidateCommand(cwd, options);
+      return;
+    }
+
+    if (options.command === 'diff') {
+      await runDiffCommand(cwd, options);
       return;
     }
 
