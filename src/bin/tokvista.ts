@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
@@ -257,6 +257,18 @@ function askRawQuestion(rl: Interface, prompt: string): Promise<string> {
   });
 }
 
+function createCompleter(cwd: string) {
+  return (line: string) => {
+    try {
+      const files = readdirSync(cwd);
+      const hits = files.filter((f) => f.startsWith(line));
+      return [hits.length ? hits : files, line];
+    } catch {
+      return [[], line];
+    }
+  };
+}
+
 async function askWithDefault(
   rl: Interface,
   label: string,
@@ -365,7 +377,12 @@ async function buildInitConfigFromPrompt(
   console.log('TokVista init');
   console.log('Press Enter to accept defaults.\n');
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const rl = createInterface({ 
+    input: process.stdin, 
+    output: process.stdout,
+    completer: createCompleter(cwd),
+    tabSize: 2
+  });
   try {
     const title = await askWithDefault(rl, 'Title', defaults.title);
     const subtitle = await askWithDefault(rl, 'Subtitle', defaults.subtitle);
