@@ -15,6 +15,7 @@ import { validateTokens } from './validator';
 import { diffTokens } from './differ';
 import { convertTokenFormat, type ConvertFormat } from './converter';
 import { scanTokenUsage } from './scanner';
+import { analyzeTokens } from '../utils/analytics';
 import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
@@ -86,7 +87,13 @@ interface ScanCliOptions {
   tokenFileArg?: string;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions | BuildCliOptions | ScanCliOptions;
+interface AnalyticsCliOptions {
+  command: 'analytics';
+  tokenFileArg: string;
+  format?: 'json' | 'text';
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions | DiffCliOptions | ConvertCliOptions | BuildCliOptions | ScanCliOptions | AnalyticsCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -285,6 +292,9 @@ function parseArgs(args: string[]): CliOptions {
   }
   if (args[0] === 'scan') {
     return parseScanArgs(args.slice(1));
+  }
+  if (args[0] === 'analytics') {
+    return parseAnalyticsArgs(args.slice(1));
   }
   return parseServeArgs(args);
 }
@@ -1699,6 +1709,11 @@ async function main() {
       return;
     }
 
+    if (options.command === 'analytics') {
+      await runAnalyticsCommand(cwd, options);
+      return;
+    }
+
     await runServeCommand(cwd, options);
   } catch (error) {
     console.error((error as Error).message);
@@ -1707,3 +1722,107 @@ async function main() {
 }
 
 void main();
+
+function parseAnalyticsArgs(args: string[]): AnalyticsCliOptions {
+  let tokenFileArg: string | undefined;
+  let format: 'json' | 'text' | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--format') {
+      const next = args[index + 1];
+      if (!next) throw new Error('Missing value for --format');
+      if (!['json', 'text'].includes(next)) {
+        throw new Error('Format must be: json or text');
+      }
+      format = next as 'json' | 'text';
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--format=')) {
+      const val = arg.slice('--format='.length);
+      if (!['json', 'text'].includes(val)) {
+        throw new Error('Format must be: json or text');
+      }
+      format = val as 'json' | 'text';
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (tokenFileArg) {
+      throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    tokenFileArg = arg;
+  }
+
+  if (!tokenFileArg) throw new Error('Token file is required for analytics');
+
+  return { command: 'analytics', tokenFileArg, format };
+}
+
+async function runAnalyticsCommand(cwd: string, options: AnalyticsCliOptions): Promise<void> {
+  const resolvedTokenPath = path.resolve(cwd, options.tokenFileArg);
+  
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  const tokens = await readTokens(resolvedTokenPath);
+  const result = analyzeTokens(tokens);
+
+  if (options.format === 'json') {
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(result.brokenAliases.length > 0 ? 1 : 0);
+  }
+
+  // Text format (default)
+  console.log(`\n📊 Token Analytics\n`);
+  console.log(`Total: ${result.total}`);
+  console.log(`Foundation: ${result.foundation}`);
+  console.log(`Semantic: ${result.semantic}`);
+  console.log(`Components: ${result.components}\n`);
+
+  console.log(`Aliases: ${result.aliases}`);
+  console.log(`Hardcoded: ${result.hardcoded}\n`);
+
+  if (result.brokenAliases.length > 0) {
+    console.log(`❌ Broken Aliases (${result.brokenAliases.length}):`);
+    result.brokenAliases.slice(0, 10).forEach(({ path, reference }) => {
+      console.log(`  ${path} → ${reference}`);
+    });
+    if (result.brokenAliases.length > 10) {
+      console.log(`  ... and ${result.brokenAliases.length - 10} more`);
+    }
+    console.log('');
+  }
+
+  if (result.hardcodedInSemantic > 0) {
+    console.log(`⚠️  ${result.hardcodedInSemantic} hardcoded values in Semantic layer`);
+  }
+  if (result.hardcodedInComponents > 0) {
+    console.log(`⚠️  ${result.hardcodedInComponents} hardcoded values in Components layer`);
+  }
+
+  if (result.hardcodedInSemantic > 0 || result.hardcodedInComponents > 0) {
+    console.log('');
+  }
+
+  if (result.brokenAliases.length > 0) {
+    console.log('❌ Quality check failed\n');
+    process.exit(1);
+  } else {
+    console.log('✅ All checks passed\n');
+    process.exit(0);
+  }
+}

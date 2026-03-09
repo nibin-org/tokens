@@ -112,6 +112,14 @@ npx tokvista init --no-preview
 ### Scan & Analyze
 
 ```bash
+# Check token health (human-readable)
+npx tokvista analytics tokens.json
+
+# JSON output for CI/CD pipelines
+npx tokvista analytics tokens.json --format json
+# Exit code 1 if broken aliases found
+# Perfect for GitHub Actions, GitLab CI, etc.
+
 # Scan for token usage and issues
 npx tokvista scan tokens.json
 
@@ -214,7 +222,7 @@ npx tokvista build tokens.json --output-dir ./dist --skip-validation
 | `tokvista diff <old> <new>` | Compare two token files |
 | `tokvista export <file>` | Export tokens to various formats |
 | `tokvista convert <file>` | Convert between token formats |
-| `tokvista build <file>` | Build all formats (validate + export) |
+| `tokvista analytics <file>` | Check token health (CI/CD ready) |
 
 | Option | Description |
 |--------|-------------|

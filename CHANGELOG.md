@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2025-01-30
+
+### Changed
+- Version bump for npm publish
+
 ## [1.14.0] - 2025-01-30
 
 ### Added
@@ -21,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Coverage legend explains F+S+C badges
   - Visual separator distinguishes Analytics from token tabs
   - Check this before publishing to catch broken references and quality issues
+- **Analytics CLI Command**: Machine-readable analytics for CI/CD pipelines
+  - `tokvista analytics tokens.json` - Human-readable report
+  - `tokvista analytics tokens.json --format json` - JSON output for automation
+  - Exit code 1 if broken aliases detected (fails CI builds)
+  - Exit code 0 if all checks pass
+  - Perfect for GitHub Actions, GitLab CI, etc.
 
 ## [1.13.0] - 2025-01-30
 
