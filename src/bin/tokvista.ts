@@ -814,8 +814,8 @@ async function readTokens(tokenPath: string): Promise<unknown> {
   const raw = await readFile(tokenPath, 'utf8');
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('Token file must contain a JSON object at the root.');
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Token file must contain valid JSON.');
     }
     return parsed;
   } catch (error) {

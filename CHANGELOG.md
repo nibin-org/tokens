@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Multi-format token support**: Automatic detection and normalization for 5 token formats
+  - Token Studio (native format)
+  - W3C DTCG format (`$type`, `$value`)
+  - Style Dictionary (nested objects)
+  - Supernova (array format with id/name/tokenType/value)
+  - Figma REST API (meta.variables structure)
+- **Format detection UI**: Informational banner shows detected format with confidence score
+- **Smart error messages**: Clear issues and actionable suggestions for unknown formats
+- **CLI array support**: CLI now accepts both JSON objects and arrays (for Supernova format)
+
 ### Fixed
 - **JS export alias resolution**: generateJS now resolves token aliases to their final values instead of exporting raw `{path.to.token}` strings
 - **Color contrast for non-hex values**: getContrastColor now supports rgb(), rgba(), hsl(), hsla() formats using canvas API parsing

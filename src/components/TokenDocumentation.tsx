@@ -28,6 +28,8 @@ import {
     extractFoundationSet,
     extractSemanticSet,
     extractComponentSet,
+    detectTokenFormat,
+    type FormatDetectionResult,
 } from '../utils/core';
 import { copyToClipboard } from '../utils/ui';
 import { Icon } from './Icon';
@@ -421,6 +423,7 @@ export function TokenDocumentation({
     theme,
 }: TokenDocumentationProps) {
     const normalizedTokenSets = useMemo(() => normalizeTokenSetsRoot(tokens), [tokens]);
+    
     const enabledCategories = useMemo(() => {
         if (!categories || categories.length === 0) return null;
         const validTabs: TabType[] = ['foundation', 'semantic', 'components'];
@@ -445,8 +448,16 @@ export function TokenDocumentation({
     const [snapshotBaseTokens, setSnapshotBaseTokens] = useState<TokensPayload | null>(null);
     const [snapshotCompare, setSnapshotCompare] = useState<CompareSummary>({ added: 0, changed: 0, removed: 0 });
     const [snapshotDiffFilter, setSnapshotDiffFilter] = useState<SnapshotDiffFilter>('all');
-    const copiedToastIdRef = useRef(0);
+    const [formatDetection, setFormatDetection] = useState<FormatDetectionResult | null>(null);
+    const [showFormatBanner, setShowFormatBanner] = useState(true);
     const copiedToastTimerRef = useRef<number | null>(null);
+    const copiedToastIdRef = useRef(0);
+
+    // Detect format after state is initialized
+    useEffect(() => {
+        const detection = detectTokenFormat(tokens);
+        setFormatDetection(detection);
+    }, [tokens]);
 
     // Copy format state
     const [copyFormat, setCopyFormat] = useState<CopyFormat>(() => {
@@ -1342,6 +1353,67 @@ export function TokenDocumentation({
                     : null)}
 
             <div className="ftd-navbar-sticky">
+                {formatDetection && formatDetection.format !== 'token-studio' && formatDetection.format !== 'unknown' && formatDetection.confidence > 0 && showFormatBanner && (
+                    <div className="ftd-format-banner">
+                        <div className="ftd-format-banner-content">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>
+                                Detected <strong>{formatDetection.format}</strong> format, normalized to Token Studio
+                                {formatDetection.confidence < 1 && ` (${Math.round(formatDetection.confidence * 100)}% confidence)`}
+                            </span>
+                        </div>
+                        <button 
+                            type="button" 
+                            className="ftd-format-banner-close"
+                            onClick={() => setShowFormatBanner(false)}
+                            aria-label="Dismiss"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                {formatDetection && formatDetection.format === 'unknown' && formatDetection.confidence === 0 && showFormatBanner && (
+                    <div className="ftd-format-banner ftd-format-banner-error">
+                        <div className="ftd-format-banner-content">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            <div>
+                                <strong>Unknown token format</strong>
+                                {formatDetection.issues.length > 0 && (
+                                    <div className="ftd-format-banner-issues">
+                                        {formatDetection.issues.map((issue: string, i: number) => <div key={i}>• {issue}</div>)}
+                                    </div>
+                                )}
+                                {formatDetection.suggestions.length > 0 && (
+                                    <div className="ftd-format-banner-suggestions">
+                                        {formatDetection.suggestions.map((suggestion: string, i: number) => <div key={i}>→ {suggestion}</div>)}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <button 
+                            type="button" 
+                            className="ftd-format-banner-close"
+                            onClick={() => setShowFormatBanner(false)}
+                            aria-label="Dismiss"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                )}
                 <header className="ftd-header">
                     {/* Left: wordmark */}
                     <div className="ftd-header-brand">

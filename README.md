@@ -6,75 +6,38 @@
 ![npm downloads](https://img.shields.io/npm/dm/tokvista.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&colorA=000000&colorB=5b47fb)
 
-**The visual layer for your design system.**
+**Beautiful, interactive documentation for your design tokens.**
 
-Visualize colors, spacing, typography, and component tokens with zero configuration.
+Zero configuration. Multiple formats. One command.
 
-[Live Demo](https://tokvista-demo.vercel.app/) · [Figma Setup Guide](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokvista/issues)
+[Live Demo](https://tokvista-demo.vercel.app/) · [Documentation](./GUIDE.md) · [Report Issue](https://github.com/nibin-org/tokvista/issues)
 
 </div>
 
 ---
 
-## Why This Package
+## Features
 
-Design token documentation is often static and hard to scan. **Tokvista** gives you:
-
-- Beautiful visuals for colors, spacing, sizes, radius, and typography
-- **Global format selector** - Switch between CSS Variables, SCSS, and Tailwind formats
-- Instant search with `Cmd+K` / `Ctrl+K`
-- One-click copy with format-aware variable names
-- Semantic + component token views with aliases resolved
-- Generic **All Tokens** view for non-standard JSON structures
-- Two usage modes: zero-setup CLI and React component library
+- 🎨 **Beautiful visuals** - Colors, spacing, typography, and components
+- 🔄 **Multi-format support** - Token Studio, W3C, Style Dictionary, Supernova, Figma API
+- 📋 **Smart copy** - CSS Variables, SCSS, or Tailwind with one click
+- 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token
+- 🎯 **Zero config** - Works out of the box with any token format
+- ⚡ **Two modes** - CLI for quick preview or React component for apps
 
 ---
 
 ## Quick Start
 
-### Option A: CLI (No React Setup)
+### CLI (Fastest)
 
 ```bash
 npx tokvista tokens.json
 ```
 
-Optional flags:
+That's it! Opens in your browser automatically.
 
-```bash
-npx tokvista ./tokens.json --config ./tokvista.config.ts --port 4000 --no-open
-```
-
-Create a starter config (recommended for branding/customization):
-
-```bash
-npx tokvista init
-```
-
-`init` asks for title/subtitle/logo/theme/brand color/categories, writes `tokvista.config.ts`, and starts a live preview automatically.
-
-### Tokvista Config (Recommended)
-
-`tokvista init` creates `tokvista.config.ts` in your project root. You can customize it like this:
-
-```ts
-export default {
-  title: 'Acme Design System',
-  subtitle: 'Interactive design tokens documentation',
-  logo: './logo.svg',
-  tokens: './tokens.json',
-  theme: 'system',
-  brandColor: '#6366f1',
-  categories: ['foundation', 'semantic', 'components'],
-}
-```
-
-Then run:
-
-```bash
-npx tokvista
-```
-
-### Option B: React Component Library
+### React Component
 
 ```bash
 npm install tokvista
@@ -90,25 +53,126 @@ export default function DesignSystem() {
 }
 ```
 
-### Migration from `@nibin-org/tokens`
+---
 
-`tokvista` is the successor package. Update your install/imports to `tokvista` and use the npm changelog or git history for version-specific migration notes.
+## Supported Formats
+
+Tokvista automatically detects and works with:
+
+| Format | Example | Auto-detected |
+|--------|---------|---------------|
+| **Token Studio** | `{ "type": "color", "value": "#fff" }` | ✅ |
+| **W3C DTCG** | `{ "$type": "color", "$value": "#fff" }` | ✅ |
+| **Style Dictionary** | Nested objects with type/value | ✅ |
+| **Supernova** | Array with id/name/tokenType/value | ✅ |
+| **Figma API** | meta.variables structure | ✅ |
+
+No configuration needed - just pass your tokens.
+
+---
+
+## CLI Usage
+
+### Basic
+
+```bash
+# Use default tokens.json
+npx tokvista
+
+# Specify token file
+npx tokvista ./design-tokens.json
+
+# Custom port
+npx tokvista tokens.json --port 4000
+
+# Don't open browser
+npx tokvista tokens.json --no-open
+```
+
+### Interactive Setup
+
+```bash
+npx tokvista init
+```
+
+Creates `tokvista.config.ts` with your branding:
+
+```ts
+export default {
+  title: 'Acme Design System',
+  subtitle: 'Design tokens documentation',
+  logo: './logo.svg',
+  tokens: './tokens.json',
+  theme: 'system',
+  brandColor: '#6366f1',
+  categories: ['foundation', 'semantic', 'components'],
+}
+```
+
+Then run `npx tokvista` to use your config.
 
 ### CLI Options
 
-- `tokvista init` - Interactive setup for `tokvista.config.ts` + auto preview
-- `tokvista [tokens.json]` - Token file path (default: `./tokens.json`)
-- `--config` / `-c` - Config file path (default auto-detect: `tokvista.config.ts|js|mjs|cjs|json`)
-- `--force` / `-f` - Overwrite existing `tokvista.config.ts` (with `tokvista init`)
-- `--port` / `-p` - Preferred port (default: `3000`)
-- `--no-open` - Do not auto-open browser
-- `--no-preview` - Skip auto-start after `tokvista init`
-- `--help` / `-h` - Show help
-- `Ctrl+C` - Stop the local server
+| Option | Description |
+|--------|-------------|
+| `tokvista [file]` | Token file path (default: `./tokens.json`) |
+| `tokvista init` | Interactive config setup |
+| `--config`, `-c` | Config file path |
+| `--port`, `-p` | Server port (default: `3000`) |
+| `--no-open` | Don't open browser |
+| `--no-preview` | Skip preview after init |
+| `--force`, `-f` | Overwrite existing config |
+| `--help`, `-h` | Show help |
 
-### Try with a Sample `tokens.json`
+---
 
-You can copy this into a local `tokens.json` file and run Tokvista immediately:
+## React API
+
+### TokenDocumentation
+
+```tsx
+<TokenDocumentation
+  tokens={tokens}              // Required: your token object
+  title="Design System"        // Optional: header title
+  subtitle="Documentation"     // Optional: subtitle
+  logo="./logo.svg"           // Optional: logo URL
+  categories={['foundation']}  // Optional: filter tabs
+  theme="dark"                // Optional: 'light' | 'dark' | 'system'
+  brandColor="#6366f1"        // Optional: primary color
+  onTokenClick={(token) => {}} // Optional: click handler
+/>
+```
+
+### Custom Fonts
+
+```tsx
+<TokenDocumentation
+  tokens={tokens}
+  loadDefaultFonts={false}
+  fontFamilySans="'Inter', sans-serif"
+  fontFamilyMono="'Fira Code', monospace"
+/>
+```
+
+### Standalone Components
+
+Build custom layouts with individual components:
+
+```tsx
+import { Colors, Spacing, Typography } from 'tokvista';
+
+<Colors tokens={tokens} title="Color Palette" />
+<Spacing tokens={tokens} />
+<Typography tokens={tokens} />
+```
+
+Available: `Colors`, `Spacing`, `Sizes`, `Radius`, `Typography`
+
+---
+
+## Token Structure
+
+### Recommended Format (Token Studio)
 
 ```json
 {
@@ -116,291 +180,148 @@ You can copy this into a local `tokens.json` file and run Tokvista immediately:
     "base": {
       "color": {
         "blue": {
-          "500": { "value": "#2563EB", "type": "color" },
-          "600": { "value": "#1D4ED8", "type": "color" }
-        },
-        "gray": {
-          "100": { "value": "#F3F4F6", "type": "color" },
-          "900": { "value": "#111827", "type": "color" }
+          "500": { "value": "#3B82F6", "type": "color" }
         }
       },
       "space": {
-        "xs": { "value": "4px", "type": "spacing" },
-        "sm": { "value": "8px", "type": "spacing" },
         "md": { "value": "16px", "type": "spacing" }
-      },
-      "size": {
-        "md": { "value": "40px", "type": "sizing" },
-        "lg": { "value": "48px", "type": "sizing" }
-      },
-      "radius": {
-        "sm": { "value": "6px", "type": "borderRadius" },
-        "md": { "value": "10px", "type": "borderRadius" }
-      },
-      "font-size": {
-        "sm": { "value": "12px", "type": "fontSize" },
-        "md": { "value": "14px", "type": "fontSize" }
       }
     }
   },
   "Semantic/Value": {
     "fill": {
-      "primary": { "value": "{base.color.blue.500}", "type": "color" },
-      "surface": { "value": "{base.color.gray.100}", "type": "color" }
-    },
-    "stroke": {
-      "primary": { "value": "{base.color.blue.600}", "type": "color" }
-    },
-    "text": {
-      "primary": { "value": "{base.color.gray.900}", "type": "color" },
-      "inverse": { "value": "#FFFFFF", "type": "color" }
+      "primary": { "value": "{base.color.blue.500}", "type": "color" }
     }
   },
   "Components/Mode 1": {
     "button": {
       "Primary": {
-        "fill": { "value": "#2563EB", "type": "color" },
-        "text": { "value": "#FFFFFF", "type": "color" },
-        "stroke": { "value": "#1D4ED8", "type": "color" }
-      },
-      "height": {
-        "md": { "value": "40px", "type": "dimension" }
-      },
-      "padding-x": {
-        "md": { "value": "16px", "type": "dimension" }
-      },
-      "padding-y": {
-        "md": { "value": "10px", "type": "dimension" }
-      },
-      "radius": {
-        "md": { "value": "10px", "type": "dimension" }
-      },
-      "font-size": {
-        "md": { "value": "14px", "type": "dimension" }
-      },
-      "line-height": {
-        "md": { "value": "20px", "type": "dimension" }
+        "fill": { "value": "{Semantic.fill.primary}", "type": "color" }
       }
     }
   }
 }
-
 ```
 
-If you're contributing in this repository, a larger real-world sample is available at `tokens.json`.
-For package users, run Tokvista with your own exported `tokens.json` file.
+### W3C Format
 
-
----
-
-## What You Get
-
-### Global Format Selector
-Switch between CSS Variables (`var(--token)`), SCSS Variables (`$token`), and Tailwind Classes (`token`) with a single click. Your preference is saved and applied across all token displays and copy operations.
-
-### Foundation Tokens
-Visualize base tokens like colors, spacing, sizes, radius, and typography.
-
-### Semantic Tokens
-Show intent-based tokens with resolved values and quick copy.
-
-### Component Tokens
-Document component overrides with clean visual grouping.
-
-### Code Export
-Export CSS, SCSS, JavaScript, or Tailwind config with high‑contrast syntax highlighting.
-
-### Playground
-Preview components using your tokens and custom class names.
-
-### All Tokens (Any JSON Shape)
-Even when your file does not follow `Foundation/Value` or `Semantic/Value`, Tokvista now shows every token path/value/type in the **All Tokens** tab.
-
----
-
-## Demo
-
-Live demo: https://tokvista-demo.vercel.app/
-
-Run it locally: see Local Development below.
-
----
-
-## Token Structure (Recommended)
-
-### Foundation
 ```json
 {
-  "Foundation/Value": {
-    "base": {
-      "blue": { "500": { "value": "#3B82F6", "type": "color" } }
+  "colors": {
+    "primary": {
+      "$value": "#3B82F6",
+      "$type": "color",
+      "$description": "Primary brand color"
     }
   }
 }
 ```
 
-### Semantic
-```json
-{
-  "Semantic/Value": {
-    "fill": {
-      "primary": { "value": "{base.blue.500}", "type": "color" }
-    }
-  }
-}
-```
-
-### Components
-```json
-{
-  "Components/Mode 1": {
-    "button": {
-      "bg": { "value": "{Semantic.fill.primary}", "type": "color" }
-    }
-  }
-}
-```
-
-Need a full setup guide? See **[GUIDE.md](./GUIDE.md)**.
+See [GUIDE.md](./GUIDE.md) for complete setup instructions.
 
 ---
 
-## API Reference
+## Features in Detail
 
-### `TokenDocumentation`
+### 🎨 Visual Token Display
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `tokens` | `FigmaTokens` | Required | Tokens object (W3C format or Token Studio) |
-| `title` | `string` | `"Design Tokens"` | Main header title |
-| `subtitle` | `string` | `"View and copy design tokens"` | Subtitle text |
-| `logo` | `string` | `undefined` | Optional logo URL (or data URL) rendered in the header |
-| `categories` | `("foundation" \| "semantic" \| "components")[]` | `undefined` | Restrict which top-level tabs are shown |
-| `fontFamilySans` | `string` | `undefined` | Override the UI sans font-family (CSS value). Load the font in your app. |
-| `fontFamilyMono` | `string` | `undefined` | Override the UI mono font-family (CSS value). Load the font in your app. |
-| `loadDefaultFonts` | `boolean` | `true` | When `true`, loads Inter + JetBrains Mono from Google Fonts. Set `false` to use only your app fonts. |
-| `onTokenClick` | `(token) => void` | `undefined` | Callback when a token is clicked |
-| `snapshotHistory` | `SnapshotHistoryOptions` | `undefined` | Enable built-in snapshot history panel. Use `accessMode: "preview"` for locked teaser mode and `"full"` for full access. |
+- **Colors** - Swatches with hex values and contrast ratios
+- **Spacing** - Visual scale with pixel measurements
+- **Typography** - Live font previews with size/weight
+- **Components** - Organized by variant with all properties
 
-### Custom Fonts
+### 📋 Smart Copy
 
-You can use your app's fonts by disabling the default fonts and passing your own font-family values.
+- Click any token to copy
+- Choose format: CSS Variables, SCSS, or Tailwind
+- Format persists across sessions
+- Toast confirmation with copied value
 
-```tsx
-<TokenDocumentation
-  tokens={tokens}
-  loadDefaultFonts={false}
-  fontFamilySans="'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-  fontFamilyMono="'Fira Code', ui-monospace, 'SF Mono', Consolas, monospace"
-/>
-```
+### 🔍 Global Search
 
-### Standalone Components
+- `Cmd+K` / `Ctrl+K` to open
+- Search by name, value, or CSS variable
+- Fuzzy matching
+- Keyboard navigation
+- Click result to copy
 
-Use these to build custom layouts:
+### 📤 Code Export
 
-- `Colors`
-- `Spacing`
-- `Sizes`
-- `Radius`
-- `Typography`
+Export all tokens as:
+- CSS Variables
+- SCSS Variables
+- JavaScript/TypeScript
+- Tailwind Config
 
-Each accepts `tokens` and optional `title`.
-
-### Snapshot History
-
-```tsx
-import { TokenDocumentation, createGitHubSnapshotHistory } from 'tokvista'
-
-<TokenDocumentation
-  tokens={tokens}
-  snapshotHistory={createGitHubSnapshotHistory({
-    owner: 'org',
-    repo: 'repo',
-    branch: 'main',
-    path: 'tokens.json',
-    accessMode: 'full', // use "preview" for hosted teaser links
-  })}
-/>
-```
-
-Generate share links for hosted preview:
-
-```ts
-import { createGitHubPreviewUrl } from 'tokvista'
-
-const livePreview = createGitHubPreviewUrl({
-  owner: 'org',
-  repo: 'repo',
-  branch: 'main',
-  path: 'tokens.json',
-  previewBaseUrl: 'https://tokvista-demo.vercel.app/',
-})
-```
+With syntax highlighting and one-click copy.
 
 ---
 
-## Search and Copy
-
-- Search across token names and values with `Cmd+K` / `Ctrl+K`
-- Keyboard navigation with Enter to focus
-- **Format-aware copying** - Choose between CSS Variables, SCSS, or Tailwind
-- Variable names display in your selected format
-- Preference persists across sessions
-
----
-
-## Production Ready
-
-- Standalone CLI via `npx tokvista tokens.json`
-- ESM and CJS builds
-- Typed exports
-- CSS delivered as a single file
-- React support via `TokenDocumentation` component
-- Compatible with modern React and Next.js
-
----
-
-## Local Development
+## Migration from @nibin-org/tokens
 
 ```bash
-# package users (published npm package)
+# Old
+npm install @nibin-org/tokens
+
+# New
+npm install tokvista
+```
+
+Update imports:
+
+```tsx
+// Old
+import { TokenDocumentation } from '@nibin-org/tokens';
+
+// New
+import { TokenDocumentation } from 'tokvista';
+```
+
+No other changes needed - API is identical.
+
+---
+
+## Development
+
+### For Package Users
+
+```bash
 npx tokvista init
 npx tokvista
+```
 
-# contributors testing local unpublished changes (this repo)
-source ~/.nvm/nvm.sh
+### For Contributors
+
+```bash
+# Setup
 nvm use 20
 npm install
 npm run build
-node dist/bin/tokvista.js init --no-preview
-node dist/bin/tokvista.js --config ./tokvista.config.ts --port 4000
 
-# demo app
+# Run CLI locally
+node dist/bin/tokvista.js tokens.json --port 4000
+
+# Run demo
 cd demo
 npm install
-# optional: copy demo/.env.example to demo/.env.local and set NEXT_PUBLIC_DEMO_SOURCE
 npm run dev
 ```
-
-CLI defaults to `http://localhost:3000` and demo dev runs at `http://localhost:3000/`, so use a custom CLI port (for example `4000`) when running both.
-Package users should use `npx tokvista ...`. `node dist/bin/tokvista.js ...` is only for local testing before publish.
-Note: production demo is served under `/tokvista/`.
 
 ---
 
 ## Resources
 
 - [Live Demo](https://tokvista-demo.vercel.app/)
-- [Figma Setup Guide](./GUIDE.md)
-- [GitHub Repository](https://github.com/nibin-org/tokvista)
-- [Issue Tracker](https://github.com/nibin-org/tokvista/issues)
+- [Setup Guide](./GUIDE.md)
+- [GitHub](https://github.com/nibin-org/tokvista)
+- [Issues](https://github.com/nibin-org/tokvista/issues)
+- [Changelog](./CHANGELOG.md)
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md).
+Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 

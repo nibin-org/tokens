@@ -4942,3 +4942,111 @@ body { margin: 0; }
   color: var(--ftd-primary); background: color-mix(in srgb, var(--ftd-primary) 10%, transparent);
   padding: 2px 6px; border-radius: 4px; width: fit-content;
 }
+
+/* =====================================================
+   FORMAT DETECTION BANNER
+   ===================================================== */
+.ftd-format-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 40px;
+  background: rgba(var(--ftd-primary-rgb), 0.06);
+  border-bottom: 1px solid rgba(var(--ftd-primary-rgb), 0.15);
+  font-size: 0.82rem;
+  color: var(--ftd-text-main);
+}
+
+.ftd-format-banner-error {
+  background: rgba(224, 108, 108, 0.08);
+  border-bottom-color: rgba(224, 108, 108, 0.25);
+}
+
+.ftd-format-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ftd-format-banner-content svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ftd-primary);
+}
+
+.ftd-format-banner-error .ftd-format-banner-content svg {
+  color: var(--ftd-red);
+}
+
+.ftd-format-banner-content > span,
+.ftd-format-banner-content > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.ftd-format-banner-issues,
+.ftd-format-banner-suggestions {
+  margin-top: 6px;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.ftd-format-banner-issues {
+  color: var(--ftd-text-sub);
+}
+
+.ftd-format-banner-suggestions {
+  color: var(--ftd-text-muted);
+  font-style: italic;
+}
+
+.ftd-format-banner-close {
+  background: transparent;
+  border: 1px solid rgba(var(--ftd-primary-rgb), 0.2);
+  color: var(--ftd-primary);
+  cursor: pointer;
+  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.ftd-format-banner-close:hover {
+  background: rgba(var(--ftd-primary-rgb), 0.1);
+  border-color: rgba(var(--ftd-primary-rgb), 0.3);
+}
+
+.ftd-format-banner-error .ftd-format-banner-close {
+  border-color: rgba(224, 108, 108, 0.3);
+  color: var(--ftd-red);
+}
+
+.ftd-format-banner-error .ftd-format-banner-close:hover {
+  background: rgba(224, 108, 108, 0.1);
+  border-color: rgba(224, 108, 108, 0.4);
+}
+
+@media (max-width: 1200px) {
+  .ftd-format-banner {
+    padding: 10px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ftd-format-banner {
+    padding: 10px 16px;
+    font-size: 0.78rem;
+  }
+  
+  .ftd-format-banner-content {
+    gap: 8px;
+  }
+}

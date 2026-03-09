@@ -1,4 +1,10 @@
 import type { NestedTokens, TokenValue } from '../types';
+import { detectTokenFormat, type FormatDetectionResult } from './formatDetector';
+import { normalizeTokenFormat } from './formatNormalizers';
+
+// Re-export for external use
+export { detectTokenFormat, type FormatDetectionResult } from './formatDetector';
+export { normalizeTokenFormat } from './formatNormalizers';
 
 /**
  * Check if a value is a token (has value and type properties)
@@ -121,9 +127,29 @@ function getComponentsRecord(record: Record<string, unknown>): Record<string, un
 export function normalizeTokenSetsRoot(input: unknown): Record<string, unknown> {
   if (!isRecord(input)) return {};
 
-  const directRoot = isRecord((input as Record<string, unknown>).tokens)
-    ? ((input as Record<string, unknown>).tokens as Record<string, unknown>)
-    : input;
+  // Auto-detect and normalize format first
+  const detection = detectTokenFormat(input);
+  let normalized = input;
+  
+  if (detection.format !== 'token-studio' && detection.format !== 'unknown') {
+    // Log format detection for debugging
+    if (typeof console !== 'undefined' && console.info) {
+      console.info(`[Tokvista] Detected ${detection.format} format (confidence: ${detection.confidence}), normalizing...`);
+    }
+    normalized = normalizeTokenFormat(input, detection.format);
+  } else if (detection.format === 'unknown' && detection.confidence === 0) {
+    // Log issues for unknown formats
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[Tokvista] Unknown token format detected:', detection.issues);
+      if (detection.suggestions.length > 0) {
+        console.warn('[Tokvista] Suggestions:', detection.suggestions);
+      }
+    }
+  }
+
+  const directRoot = isRecord((normalized as Record<string, unknown>).tokens)
+    ? ((normalized as Record<string, unknown>).tokens as Record<string, unknown>)
+    : normalized;
   const candidateKeys = Object.keys(directRoot).filter((key) => !key.startsWith('$'));
   if (candidateKeys.length === 1) {
     const inner = directRoot[candidateKeys[0]];
