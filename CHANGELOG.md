@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-03-09
+
+### Fixed
+- **Validator path resolution**: Fixed Token Studio category wrapper handling in buildTokenMap to correctly resolve token paths for alias validation
+
+## [1.7.0] - 2026-03-09
+
+### Added
+- **Validation command**: Check token files for errors before deployment
+  - `tokvista validate tokens.json`
+  - Detects invalid color values (must be hex, rgb, rgba, hsl, hsla)
+  - Detects invalid dimension values (must have unit: px, rem, em, %, vh, vw)
+  - Finds broken token aliases (references to non-existent tokens)
+  - Warns about missing type fields
+  - Exit code 1 on errors (perfect for CI/CD pipelines)
+  - Shows total tokens, errors, and warnings count
+
 ## [1.6.1] - 2026-03-09
 
 ### Fixed

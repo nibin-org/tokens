@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { FigmaTokens, TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
 import { generateCSS, generateSCSS, generateJS, generateTailwind } from '../utils/exportUtils';
 import { HotReloadServer } from './hotreload';
+import { validateTokens } from './validator';
 import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
@@ -49,7 +50,12 @@ interface ExportCliOptions {
   output?: string;
 }
 
-type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions;
+interface ValidateCliOptions {
+  command: 'validate';
+  tokenFileArg: string;
+}
+
+type CliOptions = ServeCliOptions | InitCliOptions | ExportCliOptions | ValidateCliOptions;
 
 interface RuntimeConfigPayload {
   title?: string;
@@ -74,6 +80,7 @@ Usage:
   tokvista [tokens.json] [--config tokvista.config.ts] [--port 3000] [--no-open]
   tokvista init [--force] [--port 3000] [--no-open] [--no-preview]
   tokvista export <tokens.json> --format <css|scss|json|tailwind> [--output <file>]
+  tokvista validate <tokens.json>
 
 Arguments:
   tokens.json       Path to your tokens file (overrides config.tokens)
@@ -225,7 +232,37 @@ function parseArgs(args: string[]): CliOptions {
   if (args[0] === 'export') {
     return parseExportArgs(args.slice(1));
   }
+  if (args[0] === 'validate') {
+    return parseValidateArgs(args.slice(1));
+  }
   return parseServeArgs(args);
+}
+
+function parseValidateArgs(args: string[]): ValidateCliOptions {
+  let tokenFileArg: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg.startsWith('-')) {
+      throw new Error(`Unknown option: ${arg}`);
+    }
+
+    if (tokenFileArg) {
+      throw new Error(`Only one token file is supported. Unexpected value: "${arg}"`);
+    }
+
+    tokenFileArg = arg;
+  }
+
+  if (!tokenFileArg) throw new Error('Token file is required for validate');
+
+  return { command: 'validate', tokenFileArg };
 }
 
 function parseExportArgs(args: string[]): ExportCliOptions {
@@ -1069,6 +1106,47 @@ async function runExportCommand(cwd: string, options: ExportCliOptions): Promise
   }
 }
 
+async function runValidateCommand(cwd: string, options: ValidateCliOptions): Promise<void> {
+  const resolvedTokenPath = path.resolve(cwd, options.tokenFileArg);
+  
+  if (!existsSync(resolvedTokenPath)) {
+    throw new Error(`Token file not found: ${resolvedTokenPath}`);
+  }
+
+  const tokens = await readTokens(resolvedTokenPath);
+  const result = validateTokens(tokens);
+
+  console.log(`\nValidating ${resolvedTokenPath}...\n`);
+
+  if (result.errors.length > 0) {
+    console.log('❌ Errors:');
+    result.errors.forEach(err => {
+      console.log(`  ${err.path}: ${err.message}`);
+    });
+    console.log('');
+  }
+
+  if (result.warnings.length > 0) {
+    console.log('⚠️  Warnings:');
+    result.warnings.forEach(warn => {
+      console.log(`  ${warn.path}: ${warn.message}`);
+    });
+    console.log('');
+  }
+
+  console.log(`Total tokens: ${result.totalTokens}`);
+  console.log(`Errors: ${result.errors.length}`);
+  console.log(`Warnings: ${result.warnings.length}`);
+
+  if (result.valid) {
+    console.log('\n✅ All tokens are valid!\n');
+    process.exit(0);
+  } else {
+    console.log('\n❌ Validation failed\n');
+    process.exit(1);
+  }
+}
+
 async function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
@@ -1084,6 +1162,11 @@ async function main() {
 
     if (options.command === 'export') {
       await runExportCommand(cwd, options);
+      return;
+    }
+
+    if (options.command === 'validate') {
+      await runValidateCommand(cwd, options);
       return;
     }
 

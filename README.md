@@ -109,6 +109,16 @@ npx tokvista export tokens.json --format tailwind --output tailwind.config.js
 npx tokvista export tokens.json --format css
 ```
 
+### Validate Tokens
+
+```bash
+# Check for errors
+npx tokvista validate tokens.json
+
+# Use in CI/CD (exits with code 1 on errors)
+npm run validate-tokens
+```
+
 ### Interactive Setup
 
 ```bash
@@ -138,6 +148,7 @@ Then run `npx tokvista` to use your config.
 | `tokvista [file]` | Token file path (default: `./tokens.json`) |
 | `tokvista init` | Interactive config setup |
 | `tokvista export <file> --format <type>` | Export tokens (css, scss, json, tailwind) |
+| `tokvista validate <file>` | Validate token structure and values |
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
 | `--format` | Export format (export only) |
