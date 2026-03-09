@@ -22,7 +22,11 @@ Zero configuration. Multiple formats. One command.
 - 🔄 **Multi-format support** - Token Studio, W3C, Style Dictionary, Supernova, Figma API
 - 📋 **Smart copy** - CSS Variables, SCSS, or Tailwind with one click
 - 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token
-- 🎯 **Zero config** - Works out of the box with any token format
+- 🔬 **Token scanner** - Find unused tokens and hardcoded values
+- ✅ **Validation** - Check token structure and catch errors
+- 🔄 **Format conversion** - Convert between token formats
+- 📤 **Export** - Generate CSS, SCSS, JS, or Tailwind config
+- 🎯 **Zero config** - Works out of the box
 - ⚡ **Two modes** - CLI for quick preview or React component for apps
 - 🔥 **Live reload** - Auto-refresh on file changes
 
@@ -72,25 +76,81 @@ No configuration needed - just pass your tokens.
 
 ---
 
-## CLI Usage
+## CLI Commands
 
-### Basic
+### Preview & Documentation
 
 ```bash
-# Use default tokens.json
-npx tokvista
-
-# Specify token file
-npx tokvista ./design-tokens.json
+# Start interactive documentation
+npx tokvista tokens.json
 
 # Custom port
 npx tokvista tokens.json --port 4000
 
 # Don't open browser
 npx tokvista tokens.json --no-open
+
+# Disable live reload
+npx tokvista tokens.json --no-watch
 ```
 
-### Export Tokens
+### Setup & Configuration
+
+```bash
+# Interactive setup wizard
+npx tokvista init
+
+# Force overwrite existing config
+npx tokvista init --force
+
+# Skip preview after setup
+npx tokvista init --no-preview
+```
+
+### Scan & Analyze
+
+```bash
+# Scan for token usage and issues
+npx tokvista scan tokens.json
+
+# Scan specific directory
+npx tokvista scan ./src --tokens tokens.json
+
+# Finds:
+# - Unused tokens (safe to remove)
+# - Hardcoded colors that should use tokens
+# - Hardcoded spacing values
+# - Semantic tokens with hardcoded values
+```
+
+### Validate & Quality
+
+```bash
+# Validate token structure
+npx tokvista validate tokens.json
+
+# Checks for:
+# - Invalid color values
+# - Invalid dimension values
+# - Broken token aliases
+# - Missing type fields
+# Exit code 1 on errors (perfect for CI/CD)
+```
+
+### Compare & Diff
+
+```bash
+# Compare two token files
+npx tokvista diff tokens-v1.json tokens-v2.json
+
+# Shows:
+# - Added tokens
+# - Removed tokens
+# - Modified tokens with old/new values
+# - Unchanged count
+```
+
+### Export & Generate
 
 ```bash
 # Export to CSS
@@ -102,109 +162,73 @@ npx tokvista export tokens.json --format scss --output _tokens.scss
 # Export to JavaScript
 npx tokvista export tokens.json --format json --output tokens.js
 
-# Export to Tailwind config
+# Export to Tailwind
 npx tokvista export tokens.json --format tailwind --output tailwind.config.js
 
 # Print to stdout (for piping)
 npx tokvista export tokens.json --format css
 ```
 
-### Validate Tokens
-
-```bash
-# Check for errors
-npx tokvista validate tokens.json
-
-# Use in CI/CD (exits with code 1 on errors)
-npm run validate-tokens
-```
-
-### Compare Tokens
-
-```bash
-# Compare two token files
-npx tokvista diff tokens-v1.json tokens-v2.json
-
-# Perfect for:
-# - Version control reviews
-# - Release changelogs  
-# - Migration tracking
-```
-
 ### Convert Formats
 
 ```bash
-# Convert to W3C DTCG format
+# Convert to W3C DTCG
 npx tokvista convert tokens.json --to w3c --output tokens-w3c.json
 
 # Convert to Style Dictionary
 npx tokvista convert tokens.json --to style-dictionary --output tokens-sd.json
 
-# Convert to Supernova array format
+# Convert to Supernova
 npx tokvista convert tokens.json --to supernova --output tokens-sn.json
 
-# Print to stdout
-npx tokvista convert tokens.json --to w3c
+# Convert to Token Studio
+npx tokvista convert tokens.json --to token-studio --output tokens-ts.json
 ```
 
-### Build All Formats
+### Build Pipeline
 
 ```bash
-# Build everything in one command
+# Build all formats at once
 npx tokvista build tokens.json --output-dir ./dist
 
 # Creates:
-# - tokens.css
-# - tokens.scss
-# - tokens.js
-# - tailwind.config.js
+# - tokens.css (CSS Variables)
+# - tokens.scss (SCSS Variables)
+# - tokens.js (JavaScript/TypeScript)
+# - tailwind.config.js (Tailwind Config)
 
 # Skip validation for faster builds
 npx tokvista build tokens.json --output-dir ./dist --skip-validation
 ```
 
-### Interactive Setup
+### CLI Options Reference
 
-```bash
-npx tokvista init
-```
-
-Creates `tokvista.config.ts` with your branding:
-
-```ts
-export default {
-  title: 'Acme Design System',
-  subtitle: 'Design tokens documentation',
-  logo: './logo.svg',
-  tokens: './tokens.json',
-  theme: 'system',
-  brandColor: '#6366f1',
-  categories: ['foundation', 'semantic', 'components'],
-}
-```
-
-Then run `npx tokvista` to use your config.
-
-### CLI Options
+| Command | Description |
+|---------|-------------|
+| `tokvista [file]` | Start documentation server |
+| `tokvista init` | Interactive configuration setup |
+| `tokvista scan <dir\|file>` | Analyze token usage and find issues |
+| `tokvista validate <file>` | Validate token structure |
+| `tokvista diff <old> <new>` | Compare two token files |
+| `tokvista export <file>` | Export tokens to various formats |
+| `tokvista convert <file>` | Convert between token formats |
+| `tokvista build <file>` | Build all formats (validate + export) |
 
 | Option | Description |
 |--------|-------------|
-| `tokvista [file]` | Token file path (default: `./tokens.json`) |
-| `tokvista init` | Interactive config setup |
-| `tokvista export <file> --format <type>` | Export tokens (css, scss, json, tailwind) |
-| `tokvista validate <file>` | Validate token structure and values |
-| `tokvista diff <old> <new>` | Compare two token files |
-| `tokvista convert <file> --to <format>` | Convert between token formats |
-| `tokvista build <file> --output-dir <dir>` | Build all formats (validate + export) |
-| `--config`, `-c` | Config file path |
-| `--port`, `-p` | Server port (default: `3000`) |
-| `--format` | Export format (export only) |
-| `--output`, `-o` | Output file path (export only) |
-| `--no-open` | Don't open browser |
+| `--config`, `-c` | Path to config file |
+| `--port`, `-p` | Server port (default: 3000) |
+| `--format` | Export format: css, scss, json, tailwind |
+| `--output`, `-o` | Output file path |
+| `--output-dir` | Output directory for build command |
+| `--to` | Target format for convert command |
+| `--tokens` | Token file path for scan command |
+| `--no-open` | Don't open browser automatically |
 | `--no-watch` | Disable live reload |
 | `--no-preview` | Skip preview after init |
-| `--force`, `-f` | Overwrite existing config |
-| `--help`, `-h` | Show help |
+| `--skip-validation` | Skip validation in build command |
+| `--force`, `-f` | Overwrite existing files |
+| `--help`, `-h` | Show help message |
 
 ---
 
