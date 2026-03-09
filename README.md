@@ -19,6 +19,7 @@ Zero configuration. Multiple formats. One command.
 ## Features
 
 - 🎨 **Beautiful visuals** - Colors, spacing, typography, and components
+- 📊 **Pre-ship checklist** - Analytics tab catches broken aliases, hardcoded values, and architecture issues before you publish
 - 🔄 **Multi-format support** - Token Studio, W3C, Style Dictionary, Supernova, Figma API
 - 📋 **Smart copy** - CSS Variables, SCSS, or Tailwind with one click
 - 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token

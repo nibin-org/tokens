@@ -16,6 +16,7 @@ import type {
 import { FoundationTab } from './FoundationTab';
 import { SemanticTab } from './SemanticTab';
 import { ComponentsTab } from './ComponentsTab';
+import { AnalyticsTab } from './AnalyticsTab';
 import { SearchModal } from './SearchModal';
 import { ExportModal } from './ExportModal';
 import {
@@ -36,7 +37,7 @@ import { Icon } from './Icon';
 import { FormatSelector, type CopyFormat } from './FormatSelector';
 import { formatTokenForCopy, formatCopiedLabel } from '../utils/formatUtils';
 
-type TabType = 'foundation' | 'semantic' | 'components';
+type TabType = 'foundation' | 'semantic' | 'components' | 'analytics';
 
 interface ComponentData {
     variants: Record<string, VariantTokens>;
@@ -874,6 +875,9 @@ export function TokenDocumentation({
             tabs.push({ id: 'components', label: 'Components', icon: <Icon name="components" /> });
         }
 
+        // Always show analytics tab
+        tabs.push({ id: 'analytics', label: 'Analytics', icon: <Icon name="analytics" /> });
+
         return tabs;
     }, [componentTokens, enabledCategories, foundationTokens, semanticTokens]);
 
@@ -1427,16 +1431,20 @@ export function TokenDocumentation({
                     <div className="ftd-header-center">
                         {availableTabs.length > 1 && (
                             <nav className="ftd-header-tabs" aria-label="Documentation types">
-                                {availableTabs.map((tab) => (
-                                    <button
-                                        type="button"
-                                        key={tab.id}
-                                        className={`ftd-header-tab ${activeTab === tab.id ? 'active' : ''}`}
-                                        onClick={() => setActiveTab(tab.id)}
-                                    >
-                                        <span className="ftd-header-tab-icon">{tab.icon}</span>
-                                        <span>{tab.label}</span>
-                                    </button>
+                                {availableTabs.map((tab, index) => (
+                                    <React.Fragment key={tab.id}>
+                                        {tab.id === 'analytics' && index > 0 && (
+                                            <span className="ftd-header-tab-divider" aria-hidden="true" />
+                                        )}
+                                        <button
+                                            type="button"
+                                            className={`ftd-header-tab ${activeTab === tab.id ? 'active' : ''}`}
+                                            onClick={() => setActiveTab(tab.id)}
+                                        >
+                                            <span className="ftd-header-tab-icon">{tab.icon}</span>
+                                            <span>{tab.label}</span>
+                                        </button>
+                                    </React.Fragment>
                                 ))}
                             </nav>
                         )}
@@ -1505,6 +1513,12 @@ export function TokenDocumentation({
                         onTokenClick={onTokenClick}
                         copyFormat={copyFormat}
                         onCopy={handleCopy}
+                    />
+                )}
+
+                {activeTab === 'analytics' && (
+                    <AnalyticsTab
+                        tokens={normalizedTokenSets as FigmaTokens}
                     />
                 )}
 

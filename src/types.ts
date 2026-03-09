@@ -123,7 +123,7 @@ export interface ThemeConfig {
   enableModeToggle?: boolean;
 }
 
-export type TokenCategory = 'foundation' | 'semantic' | 'components';
+export type TokenCategory = 'foundation' | 'semantic' | 'components' | 'analytics';
 export type TokvistaThemePreference = ThemeMode | 'system';
 
 export interface TokvistaConfig {

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2025-01-30
+
+### Added
+- **Analytics Tab**: Pre-ship checklist for design system health
+  - **Broken Alias Detection**: Shows unresolved token references with drill-down list
+  - **Layer Breakdown**: Foundation/Semantic/Components token counts at a glance
+  - **Architecture Insight**: Flags when Semantic layer is smaller than Components (may be intentional)
+  - **Quality Warnings**: Flags hardcoded values in Semantic/Component layers with expandable drill-down lists
+  - **Coverage Analysis**: Shows which token types have full F+S+C coverage, only flags F-only as gaps
+  - **Other Type Drill-Down**: Expandable list showing unrecognized token types (typos or exotic types)
+  - **Healthy Alias Badge**: When all aliases valid, shows green checkmark badge in Overview
+  - **Copy Report**: Export complete analytics as markdown (includes all hardcoded paths, not just first 10)
+  - **Empty State**: Clear message when no tokens are loaded
+  - Coverage legend explains F+S+C badges
+  - Visual separator distinguishes Analytics from token tabs
+  - Check this before publishing to catch broken references and quality issues
+
 ## [1.13.0] - 2025-01-30
 
 ### Added

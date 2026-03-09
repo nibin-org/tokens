@@ -4,6 +4,7 @@ export type IconName =
     | 'foundation'
     | 'semantic'
     | 'components'
+    | 'analytics'
     | 'colors'
     | 'fill'
     | 'stroke'
@@ -67,6 +68,12 @@ const ICONS: Record<IconName, (props: React.SVGProps<SVGSVGElement>) => JSX.Elem
             <rect x="13" y="4" width="7" height="7" rx="1.5" />
             <rect x="4" y="13" width="7" height="7" rx="1.5" />
             <rect x="13" y="13" width="7" height="7" rx="1.5" />
+        </svg>
+    ),
+    analytics: (props) => (
+        <svg {...base} {...props}>
+            <path d="M3 3v18h18" />
+            <path d="M18 9l-5 5-4-4-3 3" />
         </svg>
     ),
     colors: (props) => (
