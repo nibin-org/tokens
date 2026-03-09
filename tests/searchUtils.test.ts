@@ -51,10 +51,10 @@ describe('Search Utils', () => {
             "base": {
                 "blue": {
                     "500": { "value": "#3b82f6", "type": "color" }
+                },
+                "spacing": {
+                    "md": { "value": "16px", "type": "spacing" }
                 }
-            },
-            "spacing": {
-                "md": { "value": "16px", "type": "spacing" }
             }
         }
     };
@@ -69,7 +69,7 @@ describe('Search Utils', () => {
 
         it('should index nested foundation and merged component sets', () => {
             const indexed = indexTokens(nestedAndMergedTokens);
-            expect(indexed.find(t => t.name === 'blue-500')).toBeDefined();
+            expect(indexed.find(t => t.name === 'color-blue-500')).toBeDefined();
             expect(indexed.find(t => t.name === 'button Primary base')).toBeDefined();
             expect(indexed.find(t => t.name === 'button height md')).toBeDefined();
         });
