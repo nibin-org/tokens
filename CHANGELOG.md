@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Live watch & hot reload**: CLI automatically reloads browser when token files change (enabled by default, use `--no-watch` to disable)
 - **Multi-format token support**: Automatic detection and normalization for 5 token formats
   - Token Studio (native format)
   - W3C DTCG format (`$type`, `$value`)

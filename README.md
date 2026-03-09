@@ -24,6 +24,7 @@ Zero configuration. Multiple formats. One command.
 - 🔍 **Instant search** - `Cmd+K` / `Ctrl+K` to find any token
 - 🎯 **Zero config** - Works out of the box with any token format
 - ⚡ **Two modes** - CLI for quick preview or React component for apps
+- 🔥 **Live reload** - Auto-refresh on file changes
 
 ---
 
@@ -120,6 +121,7 @@ Then run `npx tokvista` to use your config.
 | `--config`, `-c` | Config file path |
 | `--port`, `-p` | Server port (default: `3000`) |
 | `--no-open` | Don't open browser |
+| `--no-watch` | Disable live reload |
 | `--no-preview` | Skip preview after init |
 | `--force`, `-f` | Overwrite existing config |
 | `--help`, `-h` | Show help |

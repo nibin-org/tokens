@@ -7,6 +7,8 @@ import path from 'node:path';
 import { createInterface, type Interface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { TokenCategory, TokvistaConfig, TokvistaThemePreference } from '../types';
+import { HotReloadServer } from './hotreload';
+import { watchFile } from './watcher';
 
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 25;
@@ -28,6 +30,7 @@ interface ServeCliOptions {
   configPathArg?: string;
   port: number;
   openBrowser: boolean;
+  watch: boolean;
 }
 
 interface InitCliOptions {
@@ -89,6 +92,7 @@ function parseServeArgs(args: string[]): ServeCliOptions {
   let configPathArg: string | undefined;
   let port = DEFAULT_PORT;
   let openBrowser = true;
+  let watch = true;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -100,6 +104,11 @@ function parseServeArgs(args: string[]): ServeCliOptions {
 
     if (arg === '--no-open') {
       openBrowser = false;
+      continue;
+    }
+
+    if (arg === '--no-watch') {
+      watch = false;
       continue;
     }
 
@@ -144,7 +153,7 @@ function parseServeArgs(args: string[]): ServeCliOptions {
     tokenFileArg = arg;
   }
 
-  return { command: 'serve', tokenFileArg, configPathArg, port, openBrowser };
+  return { command: 'serve', tokenFileArg, configPathArg, port, openBrowser, watch };
 }
 
 function parseInitArgs(args: string[]): InitCliOptions {
@@ -465,6 +474,7 @@ async function runInitCommand(cwd: string, options: InitCliOptions): Promise<Ser
     configPathArg: configPath,
     port: options.port,
     openBrowser: options.openBrowser,
+    watch: true,
   };
 }
 
@@ -693,13 +703,15 @@ function buildHtml(
   tokens: unknown,
   runtimeConfig: RuntimeConfigPayload,
   css: string,
-  appBundle: string
+  appBundle: string,
+  enableHotReload: boolean
 ): string {
   const serializedTokens = serializeForInlineScript(tokens);
   const serializedConfig = serializeForInlineScript(runtimeConfig);
   const safeCss = escapeInlineTag(css, 'style');
   const safeAppBundle = escapeInlineTag(appBundle, 'script');
   const pageTitle = runtimeConfig.title || 'TokVista';
+  const hotReloadScript = enableHotReload ? `<script>(function(){const ws=new WebSocket('ws://'+location.host+'/__tokvista_ws');ws.onmessage=()=>location.reload();ws.onerror=()=>setTimeout(()=>location.reload(),1000);})();</script>` : '';
 
   return `<!doctype html>
 <html lang="en">
@@ -714,6 +726,7 @@ function buildHtml(
     <script>window.__TOKVISTA_TOKENS__ = ${serializedTokens};</script>
     <script>window.__TOKVISTA_CONFIG__ = ${serializedConfig};</script>
     <script type="module">${safeAppBundle}</script>
+    ${hotReloadScript}
   </body>
 </html>`;
 }
@@ -727,7 +740,7 @@ function resolveDistAsset(relativePath: string): string {
 function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  html: string
+  getHtml: () => string
 ) {
   const requestUrl = request.url ?? '/';
   const pathname = requestUrl.split('?')[0];
@@ -737,7 +750,7 @@ function handleRequest(
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
     });
-    response.end(html);
+    response.end(getHtml());
     return;
   }
 
@@ -760,11 +773,11 @@ function isPortInUse(error: unknown): boolean {
   );
 }
 
-async function startServer(html: string, preferredPort: number) {
+async function startServer(getHtml: () => string, preferredPort: number) {
   for (let attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt += 1) {
     const port = preferredPort + attempt;
     const server = createServer((request, response) =>
-      handleRequest(request, response, html)
+      handleRequest(request, response, getHtml)
     );
 
     try {
@@ -834,17 +847,18 @@ async function runServeCommand(cwd: string, options: ServeCliOptions): Promise<v
   }
 
   const runtimeConfig = await buildRuntimeConfig(config, configPath, cwd);
-
-  const [tokens, css, appBundle] = await Promise.all([
-    readTokens(resolvedTokenPath),
+  const [css, appBundle] = await Promise.all([
     readFile(resolveDistAsset('styles.css'), 'utf8'),
     readFile(resolveDistAsset('cli/browser.js'), 'utf8'),
   ]);
 
-  const html = buildHtml(tokens, runtimeConfig, css, appBundle);
-  const { server, port } = await startServer(html, options.port);
+  let cachedTokens = await readTokens(resolvedTokenPath);
+  const getHtml = () => buildHtml(cachedTokens, runtimeConfig, css, appBundle, options.watch);
+  
+  const { server, port } = await startServer(getHtml, options.port);
   const openSockets = new Set<Socket>();
   let isShuttingDown = false;
+  const hotReload = options.watch ? new HotReloadServer() : null;
 
   server.on('connection', (socket) => {
     openSockets.add(socket);
@@ -853,12 +867,33 @@ async function runServeCommand(cwd: string, options: ServeCliOptions): Promise<v
     });
   });
 
+  if (hotReload) {
+    server.on('upgrade', (req, socket, head) => hotReload.handleUpgrade(req, socket, head));
+  }
+
   const url = `http://localhost:${port}`;
 
   console.log(`TokVista running at ${url}`);
   console.log(`Using tokens: ${resolvedTokenPath}`);
   if (configPath) {
     console.log(`Using config: ${configPath}`);
+  }
+  if (options.watch) {
+    console.log('Watching for changes...');
+    const watcher = watchFile(resolvedTokenPath, async () => {
+      try {
+        cachedTokens = await readTokens(resolvedTokenPath);
+        hotReload?.reload();
+        console.log('Tokens reloaded');
+      } catch (error) {
+        console.error('Failed to reload tokens:', (error as Error).message);
+      }
+    });
+    const cleanup = () => {
+      watcher.close();
+      hotReload?.close();
+    };
+    process.on('exit', cleanup);
   }
 
   if (options.openBrowser) {
