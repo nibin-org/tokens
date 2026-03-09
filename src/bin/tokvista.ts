@@ -85,6 +85,7 @@ Options:
   --format          Export format: css, scss, json, tailwind (export only)
   --output, -o      Output file path (export only)
   --no-open         Do not automatically open the browser
+  --no-watch        Disable live reload (serve only)
   --no-preview      Skip starting live preview after init
   -h, --help        Show this help message
 `);
